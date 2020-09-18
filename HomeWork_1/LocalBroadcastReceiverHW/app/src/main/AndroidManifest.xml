@@ -3,6 +3,7 @@
     package="ru.home.localbroadcastreceiverhw">
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
     <application
         android:allowBackup="true"
@@ -11,7 +12,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".main.MainActivity">
+        <activity android:name=".main.ContactsActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
