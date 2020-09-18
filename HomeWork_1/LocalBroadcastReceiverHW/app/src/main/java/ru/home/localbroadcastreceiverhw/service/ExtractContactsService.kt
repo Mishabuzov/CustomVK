@@ -3,6 +3,7 @@ package ru.home.localbroadcastreceiverhw.service
 import android.content.Intent
 import android.util.Log
 import androidx.core.app.JobIntentService
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import java.util.concurrent.TimeUnit
 
 class ExtractContactsService : JobIntentService() {
@@ -22,10 +23,9 @@ class ExtractContactsService : JobIntentService() {
         Log.d("ExtractContactsService", "work emulation is done")
 
         val serviceOutput = "This is a message from the service"
-        sendBroadcast(
+        LocalBroadcastManager.getInstance(this).sendBroadcast(
             Intent()
                 .setAction(ACTION_CONTACTS_SERVICE)
-                .addCategory(Intent.CATEGORY_DEFAULT)
                 .putExtra(EXTRA_KEY_OUT, serviceOutput)
         )
     }

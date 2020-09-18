@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 class ServiceActivity : AppCompatActivity() {
 
@@ -29,19 +30,25 @@ class ServiceActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         startContactsService(this)
+    }
+
+    override fun onStart() {
+        super.onStart()
         registerContactsReceiver()
     }
 
-    private fun registerContactsReceiver() {
-        val intentFilter = IntentFilter(ExtractContactsService.ACTION_CONTACTS_SERVICE)
-        intentFilter.addCategory(Intent.CATEGORY_DEFAULT)
-        registerReceiver(contactsBroadcastReceiver, intentFilter)
+    override fun onStop() {
+        super.onStop()
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(contactsBroadcastReceiver)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        unregisterReceiver(contactsBroadcastReceiver)
-    }
+    private fun registerContactsReceiver() =
+        LocalBroadcastManager
+            .getInstance(this)
+            .registerReceiver(
+                contactsBroadcastReceiver,
+                IntentFilter(ExtractContactsService.ACTION_CONTACTS_SERVICE)
+            )
 
     inner class ContactsBroadcastReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
