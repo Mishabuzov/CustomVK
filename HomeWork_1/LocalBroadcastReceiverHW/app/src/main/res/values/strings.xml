@@ -1,3 +1,8 @@
 <resources>
-    <string name="app_name">LocalBroadcastReceiverHW</string>
+    <string name="app_name">Retrieving contacts</string>
+
+    <string name="no_contacts_permission_notification">Contacts can\'t be displayed until you grant the permission</string>
+    <string name="loading_notification">Loading…</string>
+    <string name="contact_image_description">Contact avatar</string>
+
 </resources>

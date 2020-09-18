@@ -3,14 +3,14 @@ package ru.home.localbroadcastreceiverhw.main
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_contacts.*
 import ru.home.localbroadcastreceiverhw.R
 import ru.home.localbroadcastreceiverhw.service.ServiceActivity
 
-class MainActivity : AppCompatActivity() {
+class ContactsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_contacts)
 
         ServiceActivity.startForContacts(this)
     }
