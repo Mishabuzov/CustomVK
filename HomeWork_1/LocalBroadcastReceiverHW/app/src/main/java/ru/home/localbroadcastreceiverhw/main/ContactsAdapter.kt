@@ -8,8 +8,14 @@ import kotlinx.android.synthetic.main.item_contact.view.*
 import ru.home.localbroadcastreceiverhw.Contact
 import ru.home.localbroadcastreceiverhw.R
 
-class ContactsAdapter(private val contacts: List<Contact>) :
-    RecyclerView.Adapter<ContactsAdapter.ContactsHolder>() {
+class ContactsAdapter : RecyclerView.Adapter<ContactsAdapter.ContactsHolder>() {
+
+    private var contacts: List<Contact> = mutableListOf()
+
+    internal fun refreshContacts(contacts: List<Contact>) {
+        this.contacts = contacts
+        notifyDataSetChanged()
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactsHolder =
         ContactsHolder(
