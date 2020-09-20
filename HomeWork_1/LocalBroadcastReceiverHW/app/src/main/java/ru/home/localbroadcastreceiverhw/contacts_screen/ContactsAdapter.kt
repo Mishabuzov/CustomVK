@@ -1,20 +1,37 @@
-package ru.home.localbroadcastreceiverhw.main
+package ru.home.localbroadcastreceiverhw.contacts_screen
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.item_contact.view.*
 import ru.home.localbroadcastreceiverhw.Contact
 import ru.home.localbroadcastreceiverhw.R
+import ru.home.localbroadcastreceiverhw.widgets.DividerItemDecoration
+import ru.home.localbroadcastreceiverhw.widgets.EmptyRecyclerView
 
-class ContactsAdapter : RecyclerView.Adapter<ContactsAdapter.ContactsHolder>() {
+class ContactsAdapter(private val recyclerView: EmptyRecyclerView, emptyView: View) :
+    RecyclerView.Adapter<ContactsAdapter.ContactsHolder>() {
 
     private var contacts: List<Contact> = mutableListOf()
 
+    init {
+        recyclerView.adapter = this
+        recyclerView.layoutManager = LinearLayoutManager(recyclerView.context)
+        recyclerView.emptyView = emptyView
+        recyclerView.addItemDecoration(DividerItemDecoration(recyclerView.context))
+        refreshRecycler()
+    }
+
     internal fun refreshContacts(contacts: List<Contact>) {
         this.contacts = contacts
+        refreshRecycler()
+    }
+
+    private fun refreshRecycler() {
         notifyDataSetChanged()
+        recyclerView.checkIfEmptyAndShow()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactsHolder =
