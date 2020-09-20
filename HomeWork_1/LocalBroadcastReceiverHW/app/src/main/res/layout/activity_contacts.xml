@@ -1,8 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.recyclerview.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/contacts_recycler"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".main.ContactsActivity"
-    tools:listitem="@layout/item_contact" />
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/loading_view"
+        layout="@layout/loading_view"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/empty_text_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:text="@string/empty_contacts_notification"
+        android:textSize="@dimen/text_medium"
+        android:visibility="gone" />
+
+    <ru.home.localbroadcastreceiverhw.widgets.EmptyRecyclerView
+        android:id="@+id/contacts_recycler"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".contacts_screen.ContactsActivity"
+        tools:listitem="@layout/item_contact" />
+
+</LinearLayout>
