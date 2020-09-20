@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.core.app.JobIntentService
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import ru.home.localbroadcastreceiverhw.Contact
+import java.util.concurrent.TimeUnit
 
 
 class ExtractContactsService : JobIntentService() {
@@ -18,19 +19,13 @@ class ExtractContactsService : JobIntentService() {
             "ru.home.localbroadcastreceiverhw.service.RESPONSE"
         internal const val EXTRA_KEY_OUT = "EXTRA_OUT"
 
-        internal const val WORK_TAG = "SERVICE_WORK"
+        private fun log(message: String) = Log.d(TAG, message)
     }
 
     private fun Cursor.extractPhones(): MutableList<String> {
         val phones = mutableListOf<String>()
-        while (moveToNext()) {
-            phones.add(
-                getString(
-                    getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
-                )
-            )
-//            Log.d(TAG, "Contact: $name has phone: $phoneNumber")
-        }
+        while (moveToNext())
+            phones.add(getString(getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)))
         close()
         return phones
     }
@@ -60,12 +55,12 @@ class ExtractContactsService : JobIntentService() {
             val phones = contentResolver.query(
                 ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
                 null,
-                ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = " + id,
+                ContactsContract.CommonDataKinds.Phone.RAW_CONTACT_ID + " = " + id,
                 null,
                 null
-            ).let { it?.extractPhones() }
+            )?.extractPhones()
             val contact = Contact(id, name, phones)
-            Log.d(TAG, contact.toString())
+            log(contact.toString())
             contacts.add(contact)
         } while (cursor.moveToNext())
         cursor.close()
@@ -73,14 +68,10 @@ class ExtractContactsService : JobIntentService() {
     }
 
     override fun onHandleWork(intent: Intent) {
-        val label = intent.getStringExtra(WORK_TAG)
-        Log.d(TAG, "onHandleWork started: working with $label")
-//        TimeUnit.SECONDS.sleep(5)
+        TimeUnit.SECONDS.sleep(2)  // HardWork emulation.
         val contacts = extractContacts()
-        Log.d(TAG, "altogether ${contacts.size} contacts are extracted")
-        if (contacts.isEmpty().not()) Log.d(TAG, "first contact is:\n${contacts[0]}")
+        log("altogether ${contacts.size} contacts are extracted")
 
-//        val serviceOutput = "This is a message from the service"
         LocalBroadcastManager.getInstance(this).sendBroadcast(
             Intent()
                 .setAction(ACTION_CONTACTS_SERVICE)
