@@ -9,6 +9,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import ru.home.localbroadcastreceiverhw.R
 
+/**
+ * Activity that starts ExtractContactsService, and after receiving contacts from there
+ * (via LocalBroadcastReceiver), pass it to the ContactsActivity.
+ */
 class ServiceActivity : AppCompatActivity() {
 
     companion object {

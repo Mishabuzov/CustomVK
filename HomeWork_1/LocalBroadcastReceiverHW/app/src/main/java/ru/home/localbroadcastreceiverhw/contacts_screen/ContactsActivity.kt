@@ -15,6 +15,9 @@ import ru.home.localbroadcastreceiverhw.R
 import ru.home.localbroadcastreceiverhw.service.ExtractContactsService
 import ru.home.localbroadcastreceiverhw.service.ServiceActivity
 
+/**
+ * Activity for displaying contacts.
+ */
 class ContactsActivity : AppCompatActivity() {
 
     companion object {
@@ -39,6 +42,10 @@ class ContactsActivity : AppCompatActivity() {
         if (isContactsLoaded.not()) checkPermissionAndStartServiceActivity()
     }
 
+    /**
+     * Explicitly ask user for the contacts permission in case of launching the app in
+     * Android Marshmallow and higher APIs.
+     */
     private fun checkPermissionAndStartServiceActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
             && checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED

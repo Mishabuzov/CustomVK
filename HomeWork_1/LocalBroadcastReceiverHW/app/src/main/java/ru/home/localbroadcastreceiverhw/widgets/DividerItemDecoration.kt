@@ -9,6 +9,9 @@ import android.view.View
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
+/**
+ * Additional decorator for RecyclerView, append small line after each item.
+ */
 class DividerItemDecoration(context: Context) : RecyclerView.ItemDecoration() {
 
     private val divider: Drawable? by lazy {

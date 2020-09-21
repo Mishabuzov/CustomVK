@@ -5,6 +5,9 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 
+/**
+ * Extension of RecyclerView: Shows an EmptyView if there are items in adapter.
+ */
 class EmptyRecyclerView : RecyclerView {
     constructor(context: Context) : super(context)
 

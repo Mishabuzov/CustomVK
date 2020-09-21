@@ -3,11 +3,12 @@ package ru.home.localbroadcastreceiverhw
 import android.os.Parcel
 import android.os.Parcelable
 
+/**
+ * Custom Contact model.
+ */
 data class Contact(
     val id: String,
     val name: String,
-//    val surname: String,
-//    val email: String,
     val phoneNumbers: List<String>?
 ) : Parcelable {
 
