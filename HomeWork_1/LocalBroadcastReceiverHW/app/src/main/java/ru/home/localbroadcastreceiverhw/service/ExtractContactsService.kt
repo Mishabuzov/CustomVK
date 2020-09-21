@@ -1,5 +1,6 @@
 package ru.home.localbroadcastreceiverhw.service
 
+import android.content.Context
 import android.content.Intent
 import android.database.Cursor
 import android.provider.ContactsContract
@@ -14,12 +15,14 @@ class ExtractContactsService : JobIntentService() {
 
     companion object {
         private const val TAG = "ExtractContactsService"
+        private const val JOB_ID = 1
 
         internal const val ACTION_CONTACTS_SERVICE =
             "ru.home.localbroadcastreceiverhw.service.RESPONSE"
         internal const val EXTRA_KEY_OUT = "EXTRA_OUT"
 
-        private fun log(message: String) = Log.d(TAG, message)
+        internal fun enqueueWork(context: Context) =
+            enqueueWork(context, ExtractContactsService::class.java, JOB_ID, Intent())
     }
 
     private fun Cursor.extractPhones(): MutableList<String> {
@@ -66,6 +69,8 @@ class ExtractContactsService : JobIntentService() {
         cursor.close()
         return contacts
     }
+
+    private fun log(message: String) = Log.d(TAG, message)
 
     override fun onHandleWork(intent: Intent) {
         TimeUnit.SECONDS.sleep(2)  // HardWork emulation.

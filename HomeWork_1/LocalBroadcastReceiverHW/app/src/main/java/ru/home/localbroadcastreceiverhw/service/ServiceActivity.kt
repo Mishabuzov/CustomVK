@@ -18,9 +18,6 @@ class ServiceActivity : AppCompatActivity() {
             Intent(activity, ServiceActivity::class.java),
             REQUEST_CODE_CONTACTS
         )
-
-        private fun startContactsService(activity: AppCompatActivity) =
-            activity.startService(Intent(activity, ExtractContactsService::class.java))
     }
 
     private val contactsBroadcastReceiver by lazy { ContactsBroadcastReceiver() }
@@ -33,7 +30,7 @@ class ServiceActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         registerContactsReceiver()
-        startContactsService(this)
+        ExtractContactsService.enqueueWork(this)
     }
 
     override fun onStop() {

@@ -22,7 +22,10 @@
 
         <activity android:name=".service.ServiceActivity" />
 
-        <service android:name=".service.ExtractContactsService" />
+        <service
+            android:name=".service.ExtractContactsService"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
     </application>
 
 </manifest>
