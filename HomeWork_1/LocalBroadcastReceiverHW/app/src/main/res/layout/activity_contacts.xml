@@ -5,11 +5,6 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <include
-        android:id="@+id/loading_view"
-        layout="@layout/loading_view"
-        android:visibility="gone" />
-
     <TextView
         android:id="@+id/empty_text_view"
         android:layout_width="match_parent"
