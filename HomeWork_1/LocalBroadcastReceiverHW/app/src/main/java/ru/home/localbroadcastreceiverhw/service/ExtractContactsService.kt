@@ -10,7 +10,11 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import ru.home.localbroadcastreceiverhw.Contact
 import java.util.concurrent.TimeUnit
 
-
+/**
+ * Since IntentService is deprecated, I've implemented JobIntentService as recommended substitution.
+ * This service calls ContentProvider for extracting user contacts (if any) and pass it to the
+ * source activity (ServiceActivity) via LocalBroadcastReceiver.
+ */
 class ExtractContactsService : JobIntentService() {
 
     companion object {
@@ -48,7 +52,7 @@ class ExtractContactsService : JobIntentService() {
             null
         ) ?: error("Error getting cursor from contentResolver, cursor is null")
         cursor.moveToFirst()
-        do {
+        while (cursor.moveToNext()) {
             val id = cursor.getString(
                 cursor.getColumnIndex(ContactsContract.Contacts.NAME_RAW_CONTACT_ID)
             )
@@ -65,7 +69,7 @@ class ExtractContactsService : JobIntentService() {
             val contact = Contact(id, name, phones)
             log(contact.toString())
             contacts.add(contact)
-        } while (cursor.moveToNext())
+        }
         cursor.close()
         return contacts
     }
