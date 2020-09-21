@@ -63,6 +63,7 @@ class ContactsActivity : AppCompatActivity() {
 
     private fun showPermissionError() {
         empty_text_view.text = getString(R.string.no_contacts_permission_notification)
+        adapter.refreshRecycler()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

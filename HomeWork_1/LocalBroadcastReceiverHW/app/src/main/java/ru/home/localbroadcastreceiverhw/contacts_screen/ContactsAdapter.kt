@@ -21,7 +21,6 @@ class ContactsAdapter(private val recyclerView: EmptyRecyclerView, emptyView: Vi
         recyclerView.layoutManager = LinearLayoutManager(recyclerView.context)
         recyclerView.emptyView = emptyView
         recyclerView.addItemDecoration(DividerItemDecoration(recyclerView.context))
-        refreshRecycler()
     }
 
     internal fun refreshContacts(contacts: List<Contact>) {
@@ -29,7 +28,7 @@ class ContactsAdapter(private val recyclerView: EmptyRecyclerView, emptyView: Vi
         refreshRecycler()
     }
 
-    private fun refreshRecycler() {
+    internal fun refreshRecycler() {
         notifyDataSetChanged()
         recyclerView.checkIfEmptyAndShow()
     }
@@ -47,7 +46,8 @@ class ContactsAdapter(private val recyclerView: EmptyRecyclerView, emptyView: Vi
     class ContactsHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind(contact: Contact) = with(itemView) {
             name_text_view.text = contact.name
-            phone_text_view.text = contact.phoneNumbers?.get(0)
+            if (contact.phoneNumbers.isNullOrEmpty().not())
+                phone_text_view.text = contact.phoneNumbers?.get(0)
         }
     }
 
