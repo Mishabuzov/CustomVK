@@ -11,11 +11,7 @@
 - Изображение под текстом
 - Три кнопки: лайк, комментарии, шеринг (иконки можно брать с flaticon.com)
 
-<p>
-<a href="https://gitlab.com/android-tfs-mentors/tfs-android-online-autumn-2020/-/blob/master/HomeWork_2/view_viewgroup.jpg" target="_blank">
-  <img src=https://gitlab.com/android-tfs-mentors/tfs-android-online-autumn-2020/-/blob/master/HomeWork_2/view_viewgroup.jpg" width="270" height="480" alt="Screenshot" style="max-width:100%;">
-</a>
-<p>
+![alt text](HomeWork_2/view_viewgroup.jpg "View & ViewGroup")
 
 Использовать метод, который был рассмотрен на семинаре. Запись семинара можно попросить у Юлии Купряшовой.
 
