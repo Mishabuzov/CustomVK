@@ -1,9 +1,0 @@
-<resources>
-    <string name="app_name">Contacts</string>
-
-    <string name="no_contacts_permission_notification">Contacts can\'t be displayed until you grant the permission</string>
-    <string name="loading_notification">Loading…</string>
-    <string name="empty_contacts_notification">У вас нет ни одного контакта</string>
-
-    <string name="contact_image_description">Contact avatar</string>
-</resources>

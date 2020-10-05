@@ -1,6 +1,0 @@
-<resources>
-    <string name="app_name">CustomVK</string>
-
-    <string name="post_image_view_description">ImageView for main picture of the post</string>
-    <string name="avatar_image_view_description">ImageView for author\'s (either user or group) avatar picture</string>
-</resources>
