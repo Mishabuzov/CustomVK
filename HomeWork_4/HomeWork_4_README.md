@@ -25,8 +25,9 @@
 
 Пример того как это должно выглядеть:
 
-![alt text](Screenshot_2020-09-11_at_09.22.20.png "Title Text")
 Главная страница с вкладками
+![alt text](Screenshot_2020-09-11_at_09.22.20.png "Title Text")
 
-![alt text](Screenshot_2020-09-11_at_09.22.30.png "Title Text")
 Пост на весь экран
+![alt text](Screenshot_2020-09-11_at_09.22.30.png "Title Text")
+
