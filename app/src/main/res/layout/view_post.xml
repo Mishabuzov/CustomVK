@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    tools:parentTag="ru.home.customvk.post.PostLayout">
+
+    <de.hdodenhof.circleimageview.CircleImageView
+        android:id="@+id/avatarImageView"
+        android:layout_width="@dimen/post_avatar_size"
+        android:layout_height="@dimen/post_avatar_size"
+        android:layout_marginStart="@dimen/post_border_margin"
+        android:layout_marginTop="@dimen/post_border_margin"
+        tools:src="@mipmap/ic_launcher" />
+
+    <TextView
+        android:id="@+id/groupNameTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/post_header_text_margin_start"
+        android:layout_marginTop="@dimen/post_header_text_margin_top"
+        android:layout_marginEnd="@dimen/post_border_margin"
+        android:maxLines="1"
+        android:textColor="@color/titleText"
+        android:textSize="@dimen/post_group_name_text"
+        android:textStyle="bold"
+        tools:text="dev/null" />
+
+    <TextView
+        android:id="@+id/timeTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/post_header_text_margin_start"
+        android:layout_marginEnd="@dimen/post_border_margin"
+        android:maxLines="1"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="@dimen/post_time_text"
+        tools:text="час назад" />
+
+    <TextView
+        android:id="@+id/mainTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/post_border_margin"
+        android:layout_marginTop="@dimen/post_text_content_top_bottom_margin"
+        android:layout_marginEnd="@dimen/post_border_margin"
+        android:layout_marginBottom="@dimen/post_text_content_top_bottom_margin"
+        android:ellipsize="end"
+        android:includeFontPadding="false"
+        android:maxLines="10"
+        android:textColor="@color/postText"
+        android:textSize="@dimen/post_content_text"
+        tools:text="Акции Яндекса в ближайший год вырастут до 6к рублей. Хотя некоторые прогнозы говорят иначе." />
+
+    <ImageView
+        android:id="@+id/postImageView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:adjustViewBounds="true"
+        android:maxHeight="@dimen/post_image_max_height"
+        android:minHeight="@dimen/post_image_min_height"
+        tools:src="@drawable/long_pict" />
+
+    <Button
+        android:id="@+id/likeButton"
+        style="@style/PostActionButtons"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_like_24"
+        tools:text="1" />
+
+    <Button
+        android:id="@+id/commentButton"
+        style="@style/PostActionButtons"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_comment_24"
+        tools:text="1" />
+
+    <Button
+        android:id="@+id/shareButton"
+        style="@style/PostActionButtons"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:drawableStart="@drawable/ic_share"
+        tools:text="1" />
+
+    <TextView
+        android:id="@+id/viewingTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/post_viewings_margin_top"
+        android:layout_marginEnd="@dimen/post_border_margin"
+        android:drawablePadding="@dimen/post_action_buttons_drawable_padding"
+        android:gravity="center"
+        android:textColor="@color/shadowedText"
+        app:drawableStartCompat="@drawable/ic_eye"
+        tools:text="10.4K" />
+
+</merge>
