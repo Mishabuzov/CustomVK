@@ -36,4 +36,6 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$appCompatVersion"
     implementation "de.hdodenhof:circleimageview:$circleImageViewVersion"
     implementation "androidx.recyclerview:recyclerview:$recyclerViewVersion"
+    implementation "androidx.swiperefreshlayout:swiperefreshlayout:$recyclerViewVersion"
+    implementation "androidx.lifecycle:lifecycle-viewmodel:$lifecycleExtensionsVersion"
 }

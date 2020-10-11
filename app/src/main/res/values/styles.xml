@@ -1,10 +1,23 @@
 <resources>
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+
+        <item name="android:windowBackground">@color/windowBackground</item>
+        <item name="android:textColor">@color/textColor</item>
+        <item name="android:textColorPrimary">@color/postText</item>
+    </style>
+
+    <style name="PostActionButtons" parent="@style/Widget.AppCompat.Button.Borderless">
+        <item name="android:minWidth">@dimen/post_action_buttons_min_size</item>
+        <item name="android:minHeight">@dimen/post_action_buttons_min_size</item>
+        <item name="android:drawablePadding">@dimen/post_action_buttons_drawable_padding</item>
+        <item name="android:layout_marginStart">@dimen/post_action_buttons_margin_start</item>
+        <item name="android:layout_marginTop">@dimen/post_action_buttons_margin_top_bottom</item>
+        <item name="android:layout_marginBottom">@dimen/post_action_buttons_margin_top_bottom</item>
     </style>
 
 </resources>
