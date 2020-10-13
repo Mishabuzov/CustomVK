@@ -1,20 +1,21 @@
-package ru.home.customvk.post
+package ru.home.customvk.posts_screen
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.ItemTouchHelper.*
+import androidx.recyclerview.widget.ItemTouchHelper.END
+import androidx.recyclerview.widget.ItemTouchHelper.START
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
+import ru.home.customvk.Post
 import ru.home.customvk.R
 
 class PostAdapter(
-    afterUpdateAction: () -> Unit,
-    private val onLikeListener: (Int) -> Post,
+    private val onLikeListener: (Post) -> Unit,
     private val onRemoveSwipeListener: (Int) -> Unit
-) : RecyclerView.Adapter<TextPostHolder>(), SwipeHelperAdapter {
+) : RecyclerView.Adapter<TextPostHolder>(), PostTouchHelperCallback.SwipeHelperAdapter {
 
     companion object {
         private const val TYPE_TEXT_POST = 0
@@ -23,11 +24,7 @@ class PostAdapter(
 
     private val postsDiffer = AsyncListDiffer(this, PostDiffCallback())
 
-    init {
-        postsDiffer.addListListener { _, _ -> afterUpdateAction() }
-    }
-
-    var posts: MutableList<Post> = mutableListOf()
+    var posts: List<Post> = emptyList()
         set(value) {
             field = value
             postsDiffer.submitList(value)
@@ -36,9 +33,9 @@ class PostAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextPostHolder {
         val itemView = LayoutInflater.from(parent.context).inflate(R.layout.post_list_item, parent, false)
         return if (viewType == TYPE_TEXT_POST) {
-            TextPostHolder(itemView, onLikeListener)
+            TextPostHolder(itemView) { position -> onItemLike(position) }
         } else {
-            ImagePostHolder(itemView, onLikeListener)
+            ImagePostHolder(itemView) { position -> onItemLike(position) }
         }
     }
 
@@ -54,34 +51,22 @@ class PostAdapter(
 
     override fun getItemCount(): Int = posts.size
 
-    override fun onItemDismiss(position: Int) {
-        onRemoveSwipeListener(posts[position].id)
-        posts.removeAt(position)
-        notifyItemRemoved(position)
-    }
+    override fun onItemDismiss(position: Int) = onRemoveSwipeListener(posts[position].id)
 
     override fun onItemLike(position: Int) {
-        onLikeListener(position)
+        onLikeListener(posts[position])
         notifyItemChanged(position)
+    }
+
+    class PostDiffCallback : DiffUtil.ItemCallback<Post>() {
+        override fun areItemsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost.id == newPost.id
+
+        override fun areContentsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost == newPost
     }
 }
 
-class PostDiffCallback : DiffUtil.ItemCallback<Post>() {
-    override fun areItemsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost.id == newPost.id
-
-    override fun areContentsTheSame(oldPost: Post, newPost: Post): Boolean =
-        PostUtils.isVisibleContentEquals(oldPost, newPost)
-}
-
-interface SwipeHelperAdapter {
-    fun onItemDismiss(position: Int)
-    fun onItemLike(position: Int)
-}
-
-class ItemTouchHelperCallback(private val adapter: SwipeHelperAdapter) :
-    ItemTouchHelper.SimpleCallback(UP or DOWN, START or END) {
-
-    override fun getDragDirs(recyclerView: RecyclerView, viewHolder: ViewHolder): Int = 0
+class PostTouchHelperCallback(private val adapter: SwipeHelperAdapter) :
+    ItemTouchHelper.SimpleCallback(0, START or END) {
 
     override fun onMove(recyclerView: RecyclerView, viewHolder: ViewHolder, target: ViewHolder): Boolean = false
 
@@ -91,5 +76,10 @@ class ItemTouchHelperCallback(private val adapter: SwipeHelperAdapter) :
         } else if (direction == END) {
             adapter.onItemLike(viewHolder.adapterPosition)
         }
+    }
+
+    interface SwipeHelperAdapter {
+        fun onItemDismiss(position: Int)
+        fun onItemLike(position: Int)
     }
 }

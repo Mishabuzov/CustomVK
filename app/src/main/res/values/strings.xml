@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">CustomVK</string>
+
+    <string name="news_bottom_title">News</string>
+    <string name="favorite_bottom_title">Favorite</string>
 </resources>
