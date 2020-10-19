@@ -38,4 +38,6 @@ dependencies {
     implementation "androidx.recyclerview:recyclerview:$recyclerViewVersion"
     implementation "androidx.swiperefreshlayout:swiperefreshlayout:$recyclerViewVersion"
     implementation "androidx.lifecycle:lifecycle-viewmodel:$lifecycleExtensionsVersion"
+    implementation "com.google.android.material:material:$materialDesignVersion"
+    implementation "androidx.constraintlayout:constraintlayout:$constraintLayoutVersion"
 }

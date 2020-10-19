@@ -1,4 +1,4 @@
-package ru.home.customvk.post
+package ru.home.customvk.posts_screen
 
 import android.view.View
 import android.view.View.GONE
@@ -8,9 +8,10 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.view_post.view.*
+import ru.home.customvk.Post
 import ru.home.customvk.R
 
-open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Post) : RecyclerView.ViewHolder(itemView) {
+open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : RecyclerView.ViewHolder(itemView) {
     companion object {
         private const val DRAWABLE_RESOURCE_DIR = "drawable"
     }
@@ -28,24 +29,20 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Post) : Rec
         }
 
     private fun Button.bindLikes(post: Post) {
-        fun bindLikeContent(post: Post) {
-            var likeDrawable = R.drawable.ic_like_24
-            if (post.likesCount > 0) {
-                text = post.likesCount.toString()
-                if (post.isFavorite) {
-                    likeDrawable = R.drawable.ic_liked_24
-                }
-                setCompoundDrawablesWithIntrinsicBounds(likeDrawable, 0, 0, 0)
-                compoundDrawablePadding =
-                    resources.getDimensionPixelSize(R.dimen.post_action_buttons_drawable_padding)
-            } else {
-                text = ""
-                compoundDrawablePadding = 0
-                setCompoundDrawablesWithIntrinsicBounds(likeDrawable, 0, 0, 0)
+        var likeDrawable = R.drawable.ic_like_24
+        if (post.likesCount > 0) {
+            text = post.likesCount.toString()
+            if (post.isFavorite) {
+                likeDrawable = R.drawable.ic_liked_24
             }
+            compoundDrawablePadding =
+                resources.getDimensionPixelSize(R.dimen.post_action_buttons_drawable_padding)
+        } else {
+            text = ""
+            compoundDrawablePadding = 0
         }
-        bindLikeContent(post)
-        likeButton.setOnClickListener { bindLikeContent(onLikeAction(adapterPosition)) }
+        setCompoundDrawablesWithIntrinsicBounds(likeDrawable, 0, 0, 0)
+        likeButton.setOnClickListener { onLikeAction(adapterPosition) }
     }
 
     /**
@@ -75,7 +72,7 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Post) : Rec
     }
 }
 
-class ImagePostHolder(itemView: View, onLikeListener: (Int) -> Post) : TextPostHolder(itemView, onLikeListener) {
+class ImagePostHolder(itemView: View, onLikeListener: (Int) -> Unit) : TextPostHolder(itemView, onLikeListener) {
     override fun bind(post: Post) {
         super.bind(post)
         // bind picture

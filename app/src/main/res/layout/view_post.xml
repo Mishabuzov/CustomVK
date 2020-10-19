@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    tools:parentTag="ru.home.customvk.post.PostLayout">
+    tools:parentTag="ru.home.customvk.PostLayout">
 
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/avatarImageView"
@@ -22,7 +22,7 @@
         android:layout_marginTop="@dimen/post_header_text_margin_top"
         android:layout_marginEnd="@dimen/post_border_margin"
         android:maxLines="1"
-        android:textColor="@color/titleText"
+        android:textColor="@color/titleTextColor"
         android:textSize="@dimen/post_group_name_text"
         android:textStyle="bold"
         tools:text="dev/null" />
@@ -49,7 +49,7 @@
         android:ellipsize="end"
         android:includeFontPadding="false"
         android:maxLines="10"
-        android:textColor="@color/postText"
+        android:textColor="@color/textColorPrimary"
         android:textSize="@dimen/post_content_text"
         tools:text="Акции Яндекса в ближайший год вырастут до 6к рублей. Хотя некоторые прогнозы говорят иначе." />
 
@@ -94,7 +94,7 @@
         android:layout_marginEnd="@dimen/post_border_margin"
         android:drawablePadding="@dimen/post_action_buttons_drawable_padding"
         android:gravity="center"
-        android:textColor="@color/shadowedText"
+        android:textColor="@color/textColorShadowed"
         app:drawableStartCompat="@drawable/ic_eye"
         tools:text="10.4K" />
 
