@@ -34,10 +34,16 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "androidx.core:core-ktx:$coreKtxVersion"
     implementation "androidx.appcompat:appcompat:$appCompatVersion"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleExtensionsVersion"
+
+    // Layouts
     implementation "de.hdodenhof:circleimageview:$circleImageViewVersion"
     implementation "androidx.recyclerview:recyclerview:$recyclerViewVersion"
     implementation "androidx.swiperefreshlayout:swiperefreshlayout:$recyclerViewVersion"
-    implementation "androidx.lifecycle:lifecycle-viewmodel:$lifecycleExtensionsVersion"
     implementation "com.google.android.material:material:$materialDesignVersion"
     implementation "androidx.constraintlayout:constraintlayout:$constraintLayoutVersion"
+
+    // Rx
+    implementation "io.reactivex.rxjava2:rxandroid:$rxJavaVersion"
+    implementation "io.reactivex.rxjava2:rxjava:$rxJavaVersion"
 }

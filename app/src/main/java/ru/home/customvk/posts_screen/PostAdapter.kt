@@ -13,7 +13,7 @@ import ru.home.customvk.Post
 import ru.home.customvk.R
 
 class PostAdapter(
-    private val onLikeListener: (Post) -> Unit,
+    private val onLikeListener: (Int) -> Unit,
     private val onRemoveSwipeListener: (Int) -> Unit
 ) : RecyclerView.Adapter<TextPostHolder>(), PostTouchHelperCallback.SwipeHelperAdapter {
 
@@ -51,12 +51,9 @@ class PostAdapter(
 
     override fun getItemCount(): Int = posts.size
 
-    override fun onItemDismiss(position: Int) = onRemoveSwipeListener(posts[position].id)
+    override fun onItemDismiss(position: Int) = onRemoveSwipeListener(position)
 
-    override fun onItemLike(position: Int) {
-        onLikeListener(posts[position])
-        notifyItemChanged(position)
-    }
+    override fun onItemLike(position: Int) = onLikeListener(position)
 
     class PostDiffCallback : DiffUtil.ItemCallback<Post>() {
         override fun areItemsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost.id == newPost.id

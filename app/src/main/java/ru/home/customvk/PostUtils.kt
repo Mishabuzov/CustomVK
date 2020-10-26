@@ -5,18 +5,23 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 object PostUtils {
-    private const val POSTS_STUB_JSON_FILE = "posts.json"
-    private const val UPDATED_POSTS_STUB_JSON_FILE = "updated_posts.json"
 
-    /**
-     * Reads JSON-file from assets and returns it as a single String.
-     */
-    private fun readJson(fileName: String): String =
-        VkApplication.instance.assets.open(fileName).bufferedReader().use { it.readText() }
+  /*  private val hiddenPostIds: MutableSet<Int> = hashSetOf()
 
-    val initializationPosts: List<Post> by lazy { parsePosts(readJson(POSTS_STUB_JSON_FILE)) }
+    private var isUpdated = false*/
 
-    val updatedPosts: List<Post> by lazy { parsePosts(readJson(UPDATED_POSTS_STUB_JSON_FILE)) }
+    /*fun getPosts() = if (isUpdated) {
+        updatedPosts
+    } else {
+        initializationPosts
+    }.filterHiddenPosts()*/
+
+    /*fun refreshPosts(): List<Post> {
+        isUpdated = true
+        return getPosts()
+    }*/
+
+//    fun hidePost(postId: Int) = hiddenPostIds.add(postId)
 
     private fun JSONObject.toPost(): Post =
         Post(
@@ -33,18 +38,23 @@ object PostUtils {
             viewings = getString("viewings")
         )
 
-    fun updateLikesInfo(post: Post) =
-        updatedPosts.find { it.id == post.id }?.let {
-            it.likesCount = post.likesCount
-            it.isFavorite = post.isFavorite
-        }
+    /* fun updateLikesInfo(post: Post) {
+         updateLikesInPostsList(post, initializationPosts)
+         updateLikesInPostsList(post, updatedPosts)
+     }
 
-    fun isLikedPostsPresent(): Boolean = initializationPosts.filter(Post::isFavorite).count() > 0
+     private fun updateLikesInPostsList(post: Post, posts: List<Post>) =
+         posts.find { it.id == post.id }?.let {
+             it.likesCount = post.likesCount
+             it.isFavorite = post.isFavorite
+         }*/
+
+//    fun areLikedPostsPresent(): Boolean = getPosts().filter(Post::isFavorite).count() > 0
 
     /**
      * Extracts Post objects from jsonString
      */
-    private fun parsePosts(jsonString: String): MutableList<Post> {
+    fun parsePosts(jsonString: String): MutableList<Post> {
         val jsonArray = JSONArray(jsonString)
         val posts: MutableList<Post> = mutableListOf()
         for (i in 0 until jsonArray.length()) {
