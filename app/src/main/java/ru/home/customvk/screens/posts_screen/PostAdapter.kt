@@ -1,4 +1,4 @@
-package ru.home.customvk.posts_screen
+package ru.home.customvk.screens.posts_screen
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -39,8 +39,7 @@ class PostAdapter(
         }
     }
 
-    override fun onBindViewHolder(holder: TextPostHolder, position: Int) =
-        holder.bind(posts[position])
+    override fun onBindViewHolder(holder: TextPostHolder, position: Int) = holder.bind(posts[position])
 
     override fun getItemViewType(position: Int): Int =
         if (posts[position].pictureName.isBlank()) {

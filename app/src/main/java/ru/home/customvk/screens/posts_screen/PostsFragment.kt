@@ -1,4 +1,4 @@
-package ru.home.customvk.posts_screen
+package ru.home.customvk.screens.posts_screen
 
 import android.graphics.Color
 import android.graphics.drawable.ShapeDrawable
@@ -29,16 +29,12 @@ class PostsFragment : Fragment() {
             }
     }
 
-    private var isViewModelInitialized = false
-
     private val postsViewModel: PostsViewModel by lazy(NONE) {
-        isViewModelInitialized = true
-        ViewModelProvider(this, PostsViewModel.PostsViewModelFactory(isFavoritesFragment) { showAlertDialog() }).get(
-            PostsViewModel::class.java
-        )
+        ViewModelProvider(this, PostsViewModel.PostsViewModelFactory(isFavoritesFragment)).get(PostsViewModel::class.java)
     }
 
     private lateinit var adapter: PostAdapter
+    private lateinit var layoutManager: LinearLayoutManager
 
     private var isFavoritesFragment = false
 
@@ -57,29 +53,36 @@ class PostsFragment : Fragment() {
         }
         configureLayout()
         synchronizePostsIfNeeded()
-        postsViewModel.posts.observe(viewLifecycleOwner) {
-            adapter.posts = it
+        initObservers()
+    }
+
+    private fun initObservers() {
+        postsViewModel.getPostsLiveData().observe(viewLifecycleOwner) { adapter.posts = it }
+        postsViewModel.showErrorDialogAction.observe(viewLifecycleOwner) { showErrorDialog() }
+        postsViewModel.onSynchronizationCompleteAction.observe(viewLifecycleOwner) { postsFragmentInterractor?.onSynchronizationComplete() }
+        postsViewModel.finishUpdatingAction.observe(viewLifecycleOwner) {
+            postsRefresher.isRefreshing = false
+            postsRecycler.post { layoutManager.scrollToPosition(0) }
+        }
+        postsViewModel.updateFavoritesVisibilityAction.observe(viewLifecycleOwner) { isFavoritesFragmentVisible ->
+            postsFragmentInterractor?.updateFavoritesVisibility(isFavoritesFragmentVisible)
         }
     }
 
-    fun showAlertDialog() {
-        val alertDialogBuilder: AlertDialog.Builder = AlertDialog.Builder(requireContext())
-        alertDialogBuilder.setMessage(getString(R.string.dialog_error))
-        alertDialogBuilder.setCancelable(true)
-
-        alertDialogBuilder.setPositiveButton(
+    private fun showErrorDialog() = AlertDialog.Builder(requireContext(), R.style.AlertDialogStyle)
+        .setTitle(R.string.posts_loading_dialog_error_title)
+        .setMessage(R.string.posts_loading_dialog_error_message)
+        .setPositiveButton(
             getString(android.R.string.ok)
         ) { dialog, _ ->
             dialog.cancel()
         }
-
-        val alertDialog: AlertDialog = alertDialogBuilder.create()
-        alertDialog.show()
-    }
+        .create()
+        .show()
 
     private fun configureLayout() {
         adapter = createAdapter()
-        val layoutManager = LinearLayoutManager(context)
+        layoutManager = LinearLayoutManager(context)
 
         postsRecycler.adapter = adapter
         postsRecycler.layoutManager = layoutManager
@@ -87,43 +90,23 @@ class PostsFragment : Fragment() {
 
         ItemTouchHelper(PostTouchHelperCallback(adapter)).attachToRecyclerView(postsRecycler)
 
-        postsRefresher.setOnRefreshListener {
-            postsViewModel.refreshPosts()
-            onAffectedFavoritesChanges()
-            postsRefresher.post {
-                postsRefresher.isRefreshing = false
-                layoutManager.scrollToPosition(0)
-            }
-        }
+        postsRefresher.setOnRefreshListener { postsViewModel.refreshPosts() }
     }
 
-    private fun createAdapter(): PostAdapter =
-        PostAdapter(
-            onLikeListener = { postIndex ->
-                postsViewModel.processLike(postIndex)
-                onAffectedFavoritesChanges()
-            },
-            onRemoveSwipeListener = { postPosition ->
-                postsViewModel.hidePost(postPosition)
-                onAffectedFavoritesChanges()
-            }
-        )
-
-    private fun onAffectedFavoritesChanges() {
-        checkFavoritesVisibility()
-        postsFragmentInterractor?.onChangesMade()
-    }
-
-    private fun checkFavoritesVisibility() =
-        postsFragmentInterractor?.checkFavoritesVisibility(postsViewModel.areLikedPostsPresent())
-
-    private fun synchronizePostsIfNeeded() =
-        postsFragmentInterractor?.isNeedToSyncPosts()?.let { isNeedToSync ->
-            if (isNeedToSync && isViewModelInitialized) {
-                postsViewModel.fetchPosts()
-                postsFragmentInterractor?.onSynchronizationComplete()
-            }
+    private fun createAdapter() = PostAdapter(
+        onLikeListener = { postIndex ->
+            postsViewModel.processLike(postIndex)
+            postsFragmentInterractor?.onChangesMade()
+        },
+        onRemoveSwipeListener = { postPosition ->
+            postsViewModel.hidePost(postPosition)
+            postsFragmentInterractor?.onChangesMade()
         }
+    )
+
+    private fun synchronizePostsIfNeeded() = postsFragmentInterractor?.isNeedToSyncPosts()?.let { isNeedToSync ->
+        postsViewModel.synchronizePostsIfNeeded(isNeedToSync)
+    }
 
     private fun createPostsDivider(layoutManager: LinearLayoutManager): DividerItemDecoration {
         val divider = DividerItemDecoration(postsRecycler.context, layoutManager.orientation)
@@ -135,10 +118,9 @@ class PostsFragment : Fragment() {
     }
 
     interface PostsFragmentInterractor {
-        fun checkFavoritesVisibility(isFavoritesFragmentVisible: Boolean)
+        fun updateFavoritesVisibility(isFavoritesFragmentVisible: Boolean)
         fun onChangesMade()
         fun isNeedToSyncPosts(): Boolean
         fun onSynchronizationComplete()
     }
 }
-

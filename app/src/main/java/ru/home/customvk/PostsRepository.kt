@@ -2,7 +2,6 @@ package ru.home.customvk
 
 import io.reactivex.Completable
 import io.reactivex.Single
-import io.reactivex.schedulers.Schedulers
 import ru.home.customvk.api.PostsApi
 import ru.home.customvk.api.PostsApiImpl
 
@@ -32,16 +31,13 @@ private class DefaultPostsRepository : PostsRepository {
     override fun fetchPosts(isFilterByFavorites: Boolean): Single<List<Post>> =
         postsApi.fetchPosts(wasUpdated)
             .filterHiddenPosts()
-            .subscribeOn(Schedulers.io())
             .filterFavoritePostsIfNeeded(isFilterByFavorites)
 
     override fun notifyAboutUpdatingAction() {
         wasUpdated = true
     }
 
-    override fun likePost(post: Post): Completable =
-        postsApi.likePost(post)
-            .subscribeOn(Schedulers.io())
+    override fun likePost(post: Post): Completable = postsApi.likePost(post)
 
     override fun saveHiddenPostId(postId: Int) = hiddenPostIds.add(postId)
 }

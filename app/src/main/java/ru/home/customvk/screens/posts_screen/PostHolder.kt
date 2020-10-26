@@ -1,4 +1,4 @@
-package ru.home.customvk.posts_screen
+package ru.home.customvk.screens.posts_screen
 
 import android.view.View
 import android.view.View.GONE
@@ -35,8 +35,7 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : Rec
             if (post.isFavorite) {
                 likeDrawable = R.drawable.ic_liked_24
             }
-            compoundDrawablePadding =
-                resources.getDimensionPixelSize(R.dimen.post_action_buttons_drawable_padding)
+            compoundDrawablePadding = resources.getDimensionPixelSize(R.dimen.post_action_buttons_drawable_padding)
         } else {
             text = ""
             compoundDrawablePadding = 0
