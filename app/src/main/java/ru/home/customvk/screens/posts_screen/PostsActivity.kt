@@ -1,5 +1,7 @@
-package ru.home.customvk.posts_screen
+package ru.home.customvk.screens.posts_screen
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -9,22 +11,19 @@ import kotlin.LazyThreadSafetyMode.NONE
 
 class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterractor {
 
-    private companion object {
+    companion object {
         private const val CURRENT_SCREEN_TYPE = "screen_type"
         private const val IS_NEED_TO_SYNC_POSTS = "is_need_to_sync_posts"
         private const val IS_FAVORITES_FRAGMENT_VISIBLE = "is_favorites_fragments_visible"
-    }
-//
-//    private val postsViewModel: PostsViewModel  =
-//        ViewModelProvider(this, PostsViewModel.PostsViewModelFactory(false)).get(PostsViewModel::class.java)
 
-    private var currentScreenItemId: Int = ScreenType.NEWS.screenItemId
+        fun createIntent(context: Context) = Intent(context, PostsActivity::class.java)
+    }
 
     private val postsNewsFragment by lazy(NONE) { PostsFragment.newInstance() }
     private val postsFavoritesFragment by lazy(NONE) { PostsFragment.newInstance(isFavorite = true) }
 
     private var isNeedToSyncPosts = false
-
+    private var currentScreenItemId: Int = ScreenType.NEWS.screenItemId
     private var isFavoritesFragmentVisible = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,8 +36,7 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
             currentScreenItemId = savedInstanceState.getInt(CURRENT_SCREEN_TYPE)
             isNeedToSyncPosts = savedInstanceState.getBoolean(IS_NEED_TO_SYNC_POSTS)
             val isFavoritesFragmentVisible = savedInstanceState.getBoolean(IS_FAVORITES_FRAGMENT_VISIBLE)
-//            isFavoritesFragmentVisible = savedInstanceState.getBoolean(IS_FAVORITES_FRAGMENT_VISIBLE)
-            checkFavoritesVisibility(isFavoritesFragmentVisible)
+            updateFavoritesVisibility(isFavoritesFragmentVisible)
         }
         bottom_navigation.setOnNavigationItemSelectedListener {
             switchScreenIfNeeded(it.itemId)
@@ -74,7 +72,7 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
             .replace(R.id.fragment_container, fragment)
             .commit()
 
-    override fun checkFavoritesVisibility(isFavoritesFragmentVisible: Boolean) {
+    override fun updateFavoritesVisibility(isFavoritesFragmentVisible: Boolean) {
         if (isFavoritesFragmentVisible != this.isFavoritesFragmentVisible) {
             this.isFavoritesFragmentVisible = isFavoritesFragmentVisible
 
@@ -103,7 +101,7 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
         outState.putBoolean(IS_FAVORITES_FRAGMENT_VISIBLE, isFavoritesFragmentVisible)
     }
 
-    enum class ScreenType(val screenItemId: Int) {
+    private enum class ScreenType(val screenItemId: Int) {
         NEWS(R.id.actionNews),
         FAVORITES(R.id.actionFavorites)
     }
