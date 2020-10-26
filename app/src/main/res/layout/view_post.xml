@@ -12,7 +12,7 @@
         android:layout_height="@dimen/post_avatar_size"
         android:layout_marginStart="@dimen/post_border_margin"
         android:layout_marginTop="@dimen/post_border_margin"
-        tools:src="@mipmap/ic_launcher" />
+        tools:src="@drawable/prog" />
 
     <TextView
         android:id="@+id/groupNameTextView"

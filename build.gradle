@@ -18,7 +18,6 @@ allprojects {
     repositories {
         google()
         jcenter()
-        maven { url "https://oss.jfrog.org/libs-snapshot" }
     }
 }
 
@@ -41,4 +40,6 @@ ext {
     materialDesignVersion = '1.2.1'
     constraintLayoutVersion = '2.0.2'
     rxJavaVersion = '2.1.1'
+    rxAndroidVersion = '2.1.1'
+    vkSdkVersion='2.4.0'
 }

@@ -9,7 +9,9 @@
     <color name="textColorSecondary">#B6B6B6</color>
     <color name="textColorShadowed">#4E4E4E</color>
 
-    <color name="inactive_action_button_color">#B6B6B6</color>
+    <color name="inactiveActionButtonColor">#B6B6B6</color>
 
     <color name="windowBackground">#3A3838</color>
+
+    <color name="alertDialogTextColor">#343434</color>
 </resources>
