@@ -5,12 +5,10 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import ru.home.customvk.PostsProvider
-import ru.home.customvk.PostsRepository
 import ru.home.customvk.models.local.Post
 import ru.home.customvk.utils.PostUtils.filterByFavorites
 import ru.home.customvk.utils.SingleLiveEvent
@@ -49,7 +47,10 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
                 }
             }
             .subscribe(
-                { updatePostsAndCheckFavoritesVisibility(it) },
+                { newPosts ->
+                    updatePosts(newPosts)
+                    checkFavoritesVisibility()
+                },
                 { exception ->
                     Log.e(TAG, "fetching posts exception", exception)
                     showErrorDialogAction.call()
@@ -60,8 +61,11 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
 
     private fun areLikedPostsPresent(): Boolean = posts.value?.let { it.filterByFavorites().count() > 0 } ?: false
 
-    private fun updatePostsAndCheckFavoritesVisibility(updatedPosts: List<Post>) {
+    private fun updatePosts(updatedPosts: List<Post>) {
         posts.value = updatedPosts
+    }
+
+    private fun checkFavoritesVisibility() {
         updateFavoritesVisibilityAction.value = areLikedPostsPresent()
     }
 
@@ -69,20 +73,13 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
      * process user's clicking by like button
      */
     fun processLike(postIndex: Int) {
-        val updatedPost = posts.value!![postIndex].copy()
-        if (updatedPost.isLiked) {
-            onDislikeAction(updatedPost, postIndex)
+        val postToUpdate = posts.value!![postIndex].copy()
+        if (postToUpdate.isLiked) {
+            onDislikeAction(postToUpdate, postIndex)
         } else {
-            onPositiveLikeAction(updatedPost, postIndex)
+            onPositiveLikeAction(postToUpdate, postIndex)
         }
     }
-
-    private fun PostsRepository.sendLikeRequest(post: Post, isPositiveLike: Boolean): Single<Int> =
-        if (isPositiveLike) {
-            likePost(post)
-        } else {
-            dislikePost(post)
-        }
 
     private fun processLikeRequest(post: Post, postIndex: Int, isPositiveLikeRequest: Boolean = true) {
         val likeDisposable = PostsProvider.postsRepository
@@ -96,6 +93,7 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
                         val updatedPost = post.copy(likesCount = updatedLikesCount)
                         updatePost(updatedPost, postIndex)
                     }
+                    checkFavoritesVisibility()
                 },
                 { exception ->
                     Log.e(TAG, "fail to like post at $postIndex position", exception)
@@ -108,7 +106,7 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
     private fun updatePost(updatedPost: Post, postIndex: Int) {
         val updatedPosts = posts.value!!.toMutableList()
         updatedPosts[postIndex] = updatedPost
-        updatePostsAndCheckFavoritesVisibility(updatedPosts)
+        updatePosts(updatedPosts)
     }
 
     private fun onPositiveLikeAction(post: Post, postIndex: Int) {
@@ -135,12 +133,13 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
     fun hidePost(postIndex: Int) {
         PostsProvider.postsRepository.rememberHiddenPost(posts.value!![postIndex])
         removePost(postIndex)
+        checkFavoritesVisibility()
     }
 
     private fun removePost(postIndex: Int) {
         val updatedPosts = posts.value!!.toMutableList()
         updatedPosts.removeAt(postIndex)
-        updatePostsAndCheckFavoritesVisibility(updatedPosts)
+        updatePosts(updatedPosts)
     }
 
     /**

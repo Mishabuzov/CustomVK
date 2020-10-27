@@ -30,15 +30,20 @@ private class DefaultPostsRepository : PostsRepository {
         .filterHiddenPosts()
         .filterFavoritePostsIfNeeded(isFilterByFavorites)
 
-    override fun likePost(post: Post): Single<Int> = postsApi.likePost(post.id, post.source.id).map { it.likesInfo.count }
-    override fun dislikePost(post: Post): Single<Int> = postsApi.dislikePost(post.id, post.source.id).map { it.likesInfo.count }
+    override fun sendLikeRequest(post: Post, isPositiveLikeRequest: Boolean): Single<Int> =
+        if (isPositiveLikeRequest) {
+            postsApi.likePost(post.id, post.source.id)
+        } else {
+            postsApi.dislikePost(post.id, post.source.id)
+        }.map {
+            it.likesInfo.count
+        }
 
     override fun rememberHiddenPost(hiddenPost: Post) = hiddenPostIds.add(hiddenPost.id to hiddenPost.source.id)
 }
 
 interface PostsRepository {
     fun fetchPosts(isFilterByFavorites: Boolean): Single<List<Post>>
-    fun likePost(post: Post): Single<Int>
-    fun dislikePost(post: Post): Single<Int>
+    fun sendLikeRequest(post: Post, isPositiveLikeRequest: Boolean): Single<Int>
     fun rememberHiddenPost(hiddenPost: Post): Boolean
 }
