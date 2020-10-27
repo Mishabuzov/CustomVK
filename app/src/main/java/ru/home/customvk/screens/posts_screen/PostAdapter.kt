@@ -9,8 +9,8 @@ import androidx.recyclerview.widget.ItemTouchHelper.END
 import androidx.recyclerview.widget.ItemTouchHelper.START
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
-import ru.home.customvk.Post
 import ru.home.customvk.R
+import ru.home.customvk.models.local.Post
 
 class PostAdapter(
     private val onLikeListener: (Int) -> Unit,
@@ -42,7 +42,7 @@ class PostAdapter(
     override fun onBindViewHolder(holder: TextPostHolder, position: Int) = holder.bind(posts[position])
 
     override fun getItemViewType(position: Int): Int =
-        if (posts[position].pictureName.isBlank()) {
+        if (posts[position].pictureUrl.isBlank()) {
             TYPE_TEXT_POST
         } else {
             TYPE_IMAGE_POST
@@ -56,6 +56,7 @@ class PostAdapter(
 
     class PostDiffCallback : DiffUtil.ItemCallback<Post>() {
         override fun areItemsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost.id == newPost.id
+                && oldPost.source.id == newPost.source.id
 
         override fun areContentsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost == newPost
     }

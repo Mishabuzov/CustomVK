@@ -15,7 +15,7 @@
         <activity android:name="ru.home.customvk.screens.posts_screen.PostsActivity" />
 
         <activity
-            android:name=".screens.StartActivity"
+            android:name=".screens.LoginActivity"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

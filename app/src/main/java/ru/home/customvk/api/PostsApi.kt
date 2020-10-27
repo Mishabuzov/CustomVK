@@ -1,13 +1,32 @@
 package ru.home.customvk.api
 
-import io.reactivex.Completable
 import io.reactivex.Single
-import ru.home.customvk.Post
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.Query
+import ru.home.customvk.models.network.LikeResponse
+import ru.home.customvk.models.network.NewsfeedResponse
 
 interface PostsApi {
 
-    fun fetchPosts(withUpdates: Boolean = false): Single<List<Post>>
+    @GET("newsfeed.get")
+    fun fetchNewsfeedWithPosts(
+        @Query("filters") filters: String = "post",
+        @Query("count") count: Int = 10
+    ): Single<NewsfeedResponse>
 
-    fun likePost(post: Post): Completable
+    @POST("likes.add")
+    fun likePost(
+        @Query("item_id") itemId: Long,
+        @Query("owner_id") ownerId: Long,
+        @Query("type") type: String = "post"
+    ): Single<LikeResponse>
+
+    @POST("likes.delete")
+    fun dislikePost(
+        @Query("item_id") itemId: Long,
+        @Query("owner_id") ownerId: Long,
+        @Query("type") type: String = "post"
+    ): Single<LikeResponse>
 
 }

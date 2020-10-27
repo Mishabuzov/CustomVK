@@ -7,17 +7,16 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import kotlinx.android.synthetic.main.view_post.view.*
-import ru.home.customvk.Post
 import ru.home.customvk.R
+import ru.home.customvk.models.local.Post
 
 open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : RecyclerView.ViewHolder(itemView) {
-    companion object {
-        private const val DRAWABLE_RESOURCE_DIR = "drawable"
-    }
 
-    protected fun ImageView.setImageResourceByName(resourceName: String) =
-        setImageResource(resources.getIdentifier(resourceName, DRAWABLE_RESOURCE_DIR, context.packageName))
+    protected fun ImageView.loadImage(imageUrl: String) = Glide.with(this)
+        .load(imageUrl)
+        .into(this)
 
     private fun TextView.bindTextContent(textContent: String) =
         if (textContent.isBlank()) {
@@ -32,7 +31,7 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : Rec
         var likeDrawable = R.drawable.ic_like_24
         if (post.likesCount > 0) {
             text = post.likesCount.toString()
-            if (post.isFavorite) {
+            if (post.isLiked) {
                 likeDrawable = R.drawable.ic_liked_24
             }
             compoundDrawablePadding = resources.getDimensionPixelSize(R.dimen.post_action_buttons_drawable_padding)
@@ -58,11 +57,11 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : Rec
 
     open fun bind(post: Post) = with(itemView) {
         // bind header
-        avatarImageView.setImageResourceByName(post.groupLogo)
-        groupNameTextView.text = post.groupName
-        timeTextView.text = post.date
+        avatarImageView.loadImage(post.source.iconUrl)
+        groupNameTextView.text = post.source.name
+        timeTextView.text = post.publicationDate
 
-        mainTextView.bindTextContent(post.textContent)
+        mainTextView.bindTextContent(post.text)
         // bind footer
         likeButton.bindLikes(post)
         commentButton.bindAdditionalButtons(post.commentsCount)
@@ -76,8 +75,8 @@ class ImagePostHolder(itemView: View, onLikeListener: (Int) -> Unit) : TextPostH
         super.bind(post)
         // bind picture
         with(itemView.postImageView) {
-            if (post.pictureName.isNotBlank()) {
-                setImageResourceByName(post.pictureName)
+            if (post.pictureUrl.isNotBlank()) {
+                loadImage(post.pictureUrl)
             } else {
                 setImageResource(0)
             }

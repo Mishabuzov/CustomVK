@@ -12,7 +12,7 @@
         android:layout_height="@dimen/post_avatar_size"
         android:layout_marginStart="@dimen/post_border_margin"
         android:layout_marginTop="@dimen/post_border_margin"
-        tools:src="@drawable/prog" />
+        tools:src="@mipmap/ic_launcher_round" />
 
     <TextView
         android:id="@+id/groupNameTextView"
@@ -60,7 +60,7 @@
         android:adjustViewBounds="true"
         android:maxHeight="@dimen/post_image_max_height"
         android:minHeight="@dimen/post_image_min_height"
-        tools:src="@drawable/long_pict" />
+        tools:src="@drawable/ic_eye" />
 
     <Button
         android:id="@+id/likeButton"

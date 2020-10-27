@@ -1,36 +1,68 @@
 package ru.home.customvk.utils
 
-import android.util.Log
-import org.json.JSONArray
-import org.json.JSONObject
-import ru.home.customvk.Post
+import ru.home.customvk.models.local.Post
+import ru.home.customvk.models.local.PostSource
+import ru.home.customvk.models.network.Attachment
+import ru.home.customvk.models.network.NewsfeedObject
+import ru.home.customvk.models.network.PostNetworkModel
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.math.abs
 
 object PostUtils {
 
-    private fun JSONObject.toPost() = Post(
-        id = getInt("id"),
-        groupName = getString("groupName"),
-        groupLogo = getString("groupLogo"),
-        date = getString("date"),
-        textContent = getString("textContent"),
-        pictureName = getString("pictureName"),
-        isFavorite = getBoolean("isFavorite"),
-        likesCount = getInt("likesCount"),
-        commentsCount = getInt("commentsCount"),
-        sharesCount = getInt("sharesCount"),
-        viewings = getString("viewings")
+    private const val PHOTO_ATTACHMENT_TYPE = "photo"
+
+    fun List<Post>.filterByFavorites() = filter { it.isLiked }
+
+    private fun Long.convertUnixTimeToHumanReadableDate(): String {
+        val dateInMillisecond = Date(this * 1000)
+        val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+        sdf.timeZone = TimeZone.getTimeZone("GMT-4")
+        return sdf.format(dateInMillisecond)
+    }
+
+    private fun PostNetworkModel.toPost(sourceName: String, sourceIconUrl: String) = Post(
+        id = postId,
+        source = PostSource(id = sourceId, name = sourceName, iconUrl = sourceIconUrl),
+        publicationDate = date.convertUnixTimeToHumanReadableDate(),
+        text = text,
+        pictureUrl = attachments?.filter { it.type == PHOTO_ATTACHMENT_TYPE }?.takeFirstPhotoUrl() ?: "",
+        likesCount = likes.count,
+        isLiked = likes.isLiked == 1,
+        commentsCount = comments.count,
+        sharesCount = reposts.count,
+        viewings = (views?.count ?: 0).toString()
     )
 
+
     /**
-     * Extracts Post objects from jsonString
+     * considered that all attachments have photo type.
      */
-    fun parsePosts(jsonString: String): MutableList<Post> {
-        val jsonArray = JSONArray(jsonString)
-        val posts: MutableList<Post> = mutableListOf()
-        for (i in 0 until jsonArray.length()) {
-            posts.add(jsonArray.getJSONObject(i).toPost())
+    private fun List<Attachment>.takeFirstPhotoUrl() =
+        if (isNotEmpty()) {
+            get(0).photo.sizes[0].url
+        } else {
+            ""
         }
-        Log.d("M_PostUtils", "Altogether ${posts.size} posts are extracted.")
-        return posts
+
+    fun NewsfeedObject.toPosts(): List<Post> {
+        val extractedPosts: MutableList<Post> = mutableListOf()
+        posts.forEach { networkPost ->
+            val sourceName: String
+            val sourceIconUrl: String
+            if (networkPost.sourceId > 0) {  // the condition means that some user is author of the post.
+                val user = users.find { it.id == networkPost.sourceId }
+                sourceName = "${user?.firstName} ${user?.lastName}"
+                sourceIconUrl = user?.iconUrl ?: ""
+            } else {  // either some group published the post.
+                val group = groups.find { it.id == abs(networkPost.sourceId) }
+                sourceName = group?.name ?: ""
+                sourceIconUrl = group?.iconUrl ?: ""
+            }
+            extractedPosts.add(networkPost.toPost(sourceName, sourceIconUrl))
+        }
+        return extractedPosts
     }
+
 }

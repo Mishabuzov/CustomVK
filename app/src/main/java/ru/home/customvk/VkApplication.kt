@@ -1,6 +1,7 @@
 package ru.home.customvk
 
 import android.app.Application
+import com.facebook.stetho.Stetho
 
 class VkApplication : Application() {
     companion object {
@@ -9,5 +10,10 @@ class VkApplication : Application() {
 
     init {
         instance = this
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        Stetho.initializeWithDefaults(this)
     }
 }

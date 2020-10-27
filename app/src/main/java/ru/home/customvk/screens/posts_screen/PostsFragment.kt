@@ -63,6 +63,7 @@ class PostsFragment : Fragment() {
         postsViewModel.finishUpdatingAction.observe(viewLifecycleOwner) {
             postsRefresher.isRefreshing = false
             postsRecycler.post { layoutManager.scrollToPosition(0) }
+            postsFragmentInterractor?.onChangesMade()
         }
         postsViewModel.updateFavoritesVisibilityAction.observe(viewLifecycleOwner) { isFavoritesFragmentVisible ->
             postsFragmentInterractor?.updateFavoritesVisibility(isFavoritesFragmentVisible)
