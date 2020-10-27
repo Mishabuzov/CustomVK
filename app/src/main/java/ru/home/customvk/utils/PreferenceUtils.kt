@@ -17,12 +17,4 @@ object PreferenceUtils {
     fun getToken(context: Context) =
         context.getSharedPreferences(SHARED_PREFERENCES_NAME, MODE_PRIVATE)
             .getString(ACCESS_TOKEN_KEY, "")
-
-    /**
-     * This method should be called directly after successful initialization.
-     */
-    fun initializeApiFactoryToken() {
-
-    }
-
 }

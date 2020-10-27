@@ -29,7 +29,6 @@ class LoginActivity : AppCompatActivity() {
 
     fun onSuccessfulLogin(accessToken: String) {
         ApiFactory.accessToken = accessToken
-        val ss = "ll"
         startActivity(
             PostsActivity.createIntent(this@LoginActivity).addClearingStackFlags()
         )
