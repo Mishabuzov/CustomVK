@@ -17,8 +17,8 @@ object PostUtils {
 
     private fun Long.convertTimestampToHumanReadableDate(): String {
         val dateInMillisecond = Date(this * 1000)
-        val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-        sdf.timeZone = TimeZone.getTimeZone("GMT-4")
+        val sdf = SimpleDateFormat("dd.MM.yyyy в HH:mm", Locale.getDefault())
+        sdf.timeZone = TimeZone.getTimeZone("GMT+3")
         return sdf.format(dateInMillisecond)
     }
 
