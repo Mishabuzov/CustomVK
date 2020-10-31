@@ -2,7 +2,7 @@ package ru.home.customvk.models.network
 
 import com.google.gson.annotations.SerializedName
 
-class Group(
+class GroupNetworkModel(
     val id: Long,
 
     val name: String,

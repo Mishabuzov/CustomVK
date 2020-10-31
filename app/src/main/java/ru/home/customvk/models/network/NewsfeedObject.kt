@@ -9,7 +9,7 @@ class NewsfeedObject(
     val posts: List<PostNetworkModel>,
 
     @SerializedName("profiles")
-    val users: List<User>,
+    val users: List<UserNetworkModel>,
 
-    val groups: List<Group>
+    val groups: List<GroupNetworkModel>
 )

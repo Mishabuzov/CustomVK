@@ -57,8 +57,8 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : Rec
 
     open fun bind(post: Post) = with(itemView) {
         // bind header
-        avatarImageView.loadImage(post.source.iconUrl)
-        groupNameTextView.text = post.source.name
+        avatarImageView.loadImage(post.source.sourceIconUrl)
+        groupNameTextView.text = post.source.sourceName
         timeTextView.text = post.publicationDate
 
         mainTextView.bindTextContent(post.text)
@@ -66,7 +66,7 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : Rec
         likeButton.bindLikes(post)
         commentButton.bindAdditionalButtons(post.commentsCount)
         shareButton.bindAdditionalButtons(post.sharesCount)
-        viewingTextView.bindTextContent(post.viewings)
+        viewingTextView.bindTextContent(post.viewings.toString())
     }
 }
 

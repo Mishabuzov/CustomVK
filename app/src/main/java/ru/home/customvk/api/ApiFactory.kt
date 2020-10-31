@@ -18,7 +18,7 @@ object ApiFactory {
 
     lateinit var accessToken: String
 
-    val postsApi: PostsApi by lazy { buildRetrofit().create(PostsApi::class.java) }
+    val postApi: PostApi by lazy { buildRetrofit().create(PostApi::class.java) }
 
     private val loggingInterceptor: HttpLoggingInterceptor by lazy {
         HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }

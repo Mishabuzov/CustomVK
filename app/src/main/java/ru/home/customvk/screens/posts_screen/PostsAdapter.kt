@@ -55,8 +55,8 @@ class PostAdapter(
     override fun onItemLike(position: Int) = onLikeListener(position)
 
     class PostDiffCallback : DiffUtil.ItemCallback<Post>() {
-        override fun areItemsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost.id == newPost.id
-                && oldPost.source.id == newPost.source.id
+        override fun areItemsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost.postId == newPost.postId
+                && oldPost.source.sourceId == newPost.source.sourceId
 
         override fun areContentsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost == newPost
     }

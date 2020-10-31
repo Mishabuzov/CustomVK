@@ -7,7 +7,7 @@ import retrofit2.http.Query
 import ru.home.customvk.models.network.LikeResponse
 import ru.home.customvk.models.network.NewsfeedResponse
 
-interface PostsApi {
+interface PostApi {
 
     @GET("newsfeed.get")
     fun fetchNewsfeedWithPosts(
