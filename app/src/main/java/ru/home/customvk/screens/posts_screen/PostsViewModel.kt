@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
-import ru.home.customvk.PostsProvider
+import ru.home.customvk.RepositoryProvider
 import ru.home.customvk.models.local.Post
 import ru.home.customvk.utils.PostUtils.filterByFavorites
 import ru.home.customvk.utils.SingleLiveEvent
@@ -33,12 +33,22 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
     private val compositeDisposable = CompositeDisposable()
 
     init {
-        fetchPosts()
+        fetchPostsQuery()
     }
 
-    private fun fetchPosts(isUpdatingAction: Boolean = false) {
-        val postsDisposable = PostsProvider.postsRepository
-            .fetchPosts(isFilterByFavorites = isFilterByFavorites)
+    private fun onSuccessfulFetchingPosts(newPosts: List<Post>) {
+        setupPostsValue(newPosts)
+        checkFavoritesVisibility()
+    }
+
+    private fun onErrorFetchingPosts(errorMessage: String, throwable: Throwable) {
+        Log.e(TAG, errorMessage, throwable)
+        showErrorDialogAction.call()
+    }
+
+    private fun fetchPostsFromInternet(isUpdatingAction: Boolean = false) {
+        val fetchingPostsFromInternetDisposable = RepositoryProvider.postRepository
+            .fetchPostsFromInternet(isFilterByFavorites = isFilterByFavorites)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .doFinally {
@@ -48,20 +58,36 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
             }
             .subscribe(
                 { newPosts ->
-                    updatePosts(newPosts)
-                    checkFavoritesVisibility()
+                    onSuccessfulFetchingPosts(newPosts)
                 },
-                { exception ->
-                    Log.e(TAG, "fetching posts exception", exception)
-                    showErrorDialogAction.call()
+                { throwable ->
+                    onErrorFetchingPosts("exception in fetching posts from internet", throwable)
                 }
             )
-        compositeDisposable.add(postsDisposable)
+        compositeDisposable.add(fetchingPostsFromInternetDisposable)
+    }
+
+    private fun fetchPostsQuery() {
+        val loadPostsDisposable = RepositoryProvider.postRepository
+            .loadPostsFromDatabase(isFilterByFavorites)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { newPosts ->
+                    if (newPosts.isNotEmpty()) {
+                        onSuccessfulFetchingPosts(newPosts)
+                    } else {
+                        fetchPostsFromInternet()
+                    }
+                },
+                { throwable -> onErrorFetchingPosts("Exception in fetching posts from the database", throwable) }
+            )
+        compositeDisposable.add(loadPostsDisposable)
     }
 
     private fun areLikedPostsPresent(): Boolean = posts.value?.let { it.filterByFavorites().count() > 0 } ?: false
 
-    private fun updatePosts(updatedPosts: List<Post>) {
+    private fun setupPostsValue(updatedPosts: List<Post>) {
         posts.value = updatedPosts
     }
 
@@ -81,16 +107,15 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
         }
     }
 
-    private fun processLikeRequest(post: Post, postIndex: Int, isPositiveLikeRequest: Boolean = true) {
-        val likeDisposable = PostsProvider.postsRepository
+    private fun processLikeQuery(post: Post, postIndex: Int, isPositiveLikeRequest: Boolean = true) {
+        val likeDisposable = RepositoryProvider.postRepository
             .sendLikeRequest(post, isPositiveLikeRequest)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
-                { updatedLikesCount ->
+                { updatedPost ->
                     Log.d(TAG, "success like request")
-                    if (updatedLikesCount != post.likesCount && !isFilterByFavorites) {
-                        val updatedPost = post.copy(likesCount = updatedLikesCount)
+                    if (updatedPost.likesCount != post.likesCount && !isFilterByFavorites) {
                         updatePost(updatedPost, postIndex)
                     }
                     checkFavoritesVisibility()
@@ -106,14 +131,14 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
     private fun updatePost(updatedPost: Post, postIndex: Int) {
         val updatedPosts = posts.value!!.toMutableList()
         updatedPosts[postIndex] = updatedPost
-        updatePosts(updatedPosts)
+        setupPostsValue(updatedPosts)
     }
 
     private fun onPositiveLikeAction(post: Post, postIndex: Int) {
         post.isLiked = true
         post.likesCount++
         updatePost(post, postIndex)
-        processLikeRequest(post, postIndex)
+        processLikeQuery(post, postIndex)
     }
 
     private fun onDislikeAction(post: Post, postIndex: Int) {
@@ -124,14 +149,14 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
         } else {
             updatePost(post, postIndex)
         }
-        processLikeRequest(post, postIndex, isPositiveLikeRequest = false)
+        processLikeQuery(post, postIndex, isPositiveLikeRequest = false)
     }
 
     /**
      * process hiding of post by swiping from right to left in the newsfeed.
      */
     fun hidePost(postIndex: Int) {
-        PostsProvider.postsRepository.rememberHiddenPost(posts.value!![postIndex])
+        RepositoryProvider.postRepository.rememberHiddenPost(posts.value!![postIndex])
         removePost(postIndex)
         checkFavoritesVisibility()
     }
@@ -139,17 +164,17 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
     private fun removePost(postIndex: Int) {
         val updatedPosts = posts.value!!.toMutableList()
         updatedPosts.removeAt(postIndex)
-        updatePosts(updatedPosts)
+        setupPostsValue(updatedPosts)
     }
 
     /**
      * Refresh newsfeed by SwipeRefresh action.
      */
-    fun refreshPosts() = fetchPosts(isUpdatingAction = true)
+    fun refreshPosts() = fetchPostsFromInternet(isUpdatingAction = true)
 
     fun synchronizePostsIfNeeded(isNeedToSync: Boolean) {
         if (isNeedToSync && posts.value != null) {
-            fetchPosts()
+            fetchPostsQuery()
             onSynchronizationCompleteAction.call()
         }
     }

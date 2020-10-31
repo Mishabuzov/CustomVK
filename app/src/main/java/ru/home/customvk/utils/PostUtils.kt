@@ -15,7 +15,7 @@ object PostUtils {
 
     fun List<Post>.filterByFavorites() = filter { it.isLiked }
 
-    private fun Long.convertUnixTimeToHumanReadableDate(): String {
+    private fun Long.convertTimestampToHumanReadableDate(): String {
         val dateInMillisecond = Date(this * 1000)
         val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
         sdf.timeZone = TimeZone.getTimeZone("GMT-4")
@@ -23,18 +23,17 @@ object PostUtils {
     }
 
     private fun PostNetworkModel.toPost(sourceName: String, sourceIconUrl: String) = Post(
-        id = postId,
-        source = PostSource(id = sourceId, name = sourceName, iconUrl = sourceIconUrl),
-        publicationDate = date.convertUnixTimeToHumanReadableDate(),
+        postId = postId,
+        source = PostSource(sourceId, sourceName, sourceIconUrl),
+        publicationDate = date.convertTimestampToHumanReadableDate(),
         text = text,
         pictureUrl = attachments?.filter { it.type == PHOTO_ATTACHMENT_TYPE }?.takeFirstPhotoUrl() ?: "",
         likesCount = likes.count,
         isLiked = likes.isLiked == 1,
         commentsCount = comments.count,
         sharesCount = reposts.count,
-        viewings = (views?.count ?: 0).toString()
+        viewings = views?.count ?: 0
     )
-
 
     /**
      * considered that all attachments have photo type.
@@ -51,11 +50,11 @@ object PostUtils {
         posts.forEach { networkPost ->
             val sourceName: String
             val sourceIconUrl: String
-            if (networkPost.sourceId > 0) {  // the condition means that some user is author of the post.
+            if (networkPost.sourceId > 0) {  // the condition means that the post was published by some user.
                 val user = users.find { it.id == networkPost.sourceId }
                 sourceName = "${user?.firstName} ${user?.lastName}"
                 sourceIconUrl = user?.iconUrl ?: ""
-            } else {  // either some group published the post.
+            } else {  // either the post was published by some group.
                 val group = groups.find { it.id == abs(networkPost.sourceId) }
                 sourceName = group?.name ?: ""
                 sourceIconUrl = group?.iconUrl ?: ""
