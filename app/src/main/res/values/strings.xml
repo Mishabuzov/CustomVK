@@ -11,4 +11,5 @@
     <string name="posts_loading_dialog_error_title">Ошибка</string>
     <string name="authorization_failing_dialog_message">Для использования приложения необходимо авторизоваться</string>
     <string name="authorization_failing_dialog_title">Уведомление</string>
+    <string name="token_expired_message">Срок действия вашего токена истёк. Необходимо заново авторизоваться.</string>
 </resources>
