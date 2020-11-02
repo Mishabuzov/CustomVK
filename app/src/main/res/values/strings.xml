@@ -2,14 +2,19 @@
     <string name="app_name">CustomVK</string>
     <integer name="com_vk_sdk_AppId">7638994</integer>
 
-    <!--    bottom menu-->
+    <!-- bottom menu -->
     <string name="news_bottom_title">News</string>
     <string name="favorite_bottom_title">Favorite</string>
 
-    <!--    alert dialog messages-->
+    <!-- dialog messages -->
     <string name="posts_loading_dialog_error_message">При обработке запроса произошла ошибка</string>
     <string name="posts_loading_dialog_error_title">Ошибка</string>
     <string name="authorization_failing_dialog_message">Для использования приложения необходимо авторизоваться</string>
     <string name="authorization_failing_dialog_title">Уведомление</string>
     <string name="token_expired_message">Срок действия вашего токена истёк. Необходимо заново авторизоваться.</string>
+    <string name="share_image_dialog_title">Поделиться изображением:</string>
+
+    <!-- image share dialog options -->
+    <string name="image_share_dialog_save_option">Сохранить изображение в галлерею</string>
+    <string name="image_share_dialog_share_option">Поделиться изображением</string>
 </resources>

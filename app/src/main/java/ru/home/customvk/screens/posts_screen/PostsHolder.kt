@@ -44,7 +44,7 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : Rec
     }
 
     /**
-     * Since comments/sharing functional is not yet implemented, its binding is the same
+     * Binding of comments/sharing button
      */
     private fun Button.bindAdditionalButtons(count: Int) =
         if (count > 0) {
@@ -70,9 +70,15 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : Rec
     }
 }
 
-class ImagePostHolder(itemView: View, onLikeListener: (Int) -> Unit) : TextPostHolder(itemView, onLikeListener) {
+class ImagePostHolder(
+    itemView: View,
+    val onShareAction: (String) -> Unit,
+    onLikeListener: (Int) -> Unit
+) : TextPostHolder(itemView, onLikeListener) {
+
     override fun bind(post: Post) {
         super.bind(post)
+        itemView.shareButton.setOnClickListener { onShareAction(post.pictureUrl) }
         // bind picture
         with(itemView.postImageView) {
             if (post.pictureUrl.isNotBlank()) {
@@ -82,4 +88,5 @@ class ImagePostHolder(itemView: View, onLikeListener: (Int) -> Unit) : TextPostH
             }
         }
     }
+
 }
