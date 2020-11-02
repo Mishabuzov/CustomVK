@@ -3,7 +3,4 @@
     <cache-path
         name="shared_images"
         path="shared_images/" />
-    <external-media-path
-        name="public_images"
-        path="public_images/" />
 </paths>

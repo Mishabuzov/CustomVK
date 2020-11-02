@@ -13,8 +13,9 @@
     <string name="authorization_failing_dialog_title">Уведомление</string>
     <string name="token_expired_message">Срок действия вашего токена истёк. Необходимо заново авторизоваться.</string>
     <string name="share_image_dialog_title">Поделиться изображением:</string>
+    <string name="successful_image_saving_notification_format">Изображение успешно сохранено в папку %1$s.</string>
 
     <!-- image share dialog options -->
-    <string name="image_share_dialog_save_option">Сохранить изображение в галлерею</string>
-    <string name="image_share_dialog_share_option">Поделиться изображением</string>
+    <string name="share_image_dialog_save_option">Сохранить изображение в галлерею</string>
+    <string name="share_image_dialog_share_option">Поделиться изображением</string>
 </resources>

@@ -11,7 +11,7 @@
         style="@style/BottomDialogItemStyle"
         android:layout_width="match_parent"
         android:layout_height="@dimen/sharing_dialog_item_height"
-        android:text="@string/image_share_dialog_save_option"
+        android:text="@string/share_image_dialog_save_option"
         app:drawableStartCompat="@drawable/ic_save_24" />
 
     <TextView
@@ -19,7 +19,7 @@
         style="@style/BottomDialogItemStyle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/image_share_dialog_share_option"
+        android:text="@string/share_image_dialog_share_option"
         app:drawableStartCompat="@drawable/ic_share_24" />
 
 </LinearLayout>

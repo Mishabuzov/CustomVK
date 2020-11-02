@@ -15,10 +15,11 @@ import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.MimeTypeMap
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -32,7 +33,7 @@ import kotlinx.android.synthetic.main.news_fragment.*
 import ru.home.customvk.R
 import ru.home.customvk.utils.PostUtils
 import ru.home.customvk.utils.PostUtils.POSTS_IMAGE_PROVIDER_AUTHORITIES
-import ru.home.customvk.utils.PostUtils.createFileToSaveBitmap
+import ru.home.customvk.utils.PostUtils.createFileToCacheBitmap
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.LazyThreadSafetyMode.NONE
@@ -42,6 +43,7 @@ class PostsFragment : Fragment() {
 
     companion object {
         private const val ARG_FAVORITE = "is_favorite"
+        private val PUBLIC_IMAGES_DIR = Environment.DIRECTORY_PICTURES
 
         fun newInstance(isFavorite: Boolean = false): PostsFragment =
             PostsFragment().apply {
@@ -105,9 +107,7 @@ class PostsFragment : Fragment() {
     private fun showErrorDialog() = AlertDialog.Builder(requireContext(), R.style.AlertDialogStyle)
         .setTitle(R.string.posts_loading_dialog_error_title)
         .setMessage(R.string.posts_loading_dialog_error_message)
-        .setPositiveButton(
-            getString(android.R.string.ok)
-        ) { dialog, _ ->
+        .setPositiveButton(getString(android.R.string.ok)) { dialog, _ ->
             dialog.cancel()
         }
         .create()
@@ -135,21 +135,39 @@ class PostsFragment : Fragment() {
             postsViewModel.hidePost(postPosition)
             postsFragmentInterractor?.onChangesMade()
         },
-//        onShareAction = { pictureUrl -> cacheImageAndShare(pictureUrl) }
-        onShareAction = { pictureUrl -> configShareDialogAndShow(pictureUrl) }
+        onShareAction = { imageUrl: String ->
+            configShareDialogForImage(imageUrl)
+            shareDialog.show()
+        }
     )
 
-    private fun configShareDialogAndShow(pictureUrl: String) {
+    private fun configShareDialogForImage(imageUrl: String) {
         shareDialogView.findViewById<TextView>(R.id.saveToGalleryBottomDialogItem).setOnClickListener {
-            saveImageWithPublicAccess(pictureUrl)
+            downloadAndProcessImage(imageUrl) { bitmap, bitmapFullName ->
+                val imageMimeType = PostUtils.getImageMimeTypeByUrl(imageUrl)
+                val localImageUri = saveBitmapToPublicMediaDirectory(bitmap, bitmapFullName, imageMimeType)
+                showDialogToOpenImageInOtherApp(localImageUri, imageMimeType)
+            }
             shareDialog.dismiss()
         }
         shareDialogView.findViewById<TextView>(R.id.shareBottomDialogItem).setOnClickListener {
-            cacheImageAndShare(pictureUrl)
+            downloadAndProcessImage(imageUrl) { bitmap, bitmapFullName ->
+                val internalImageUri: Uri = cacheBitmapInternally(bitmap, bitmapFullName)
+                shareImage(internalImageUri)
+            }
             shareDialog.dismiss()
         }
-        shareDialog.show()
     }
+
+    private fun downloadAndProcessImage(imageUrl: String, actionToProcess: (Bitmap, String) -> Unit) = Glide.with(this)
+        .asBitmap()
+        .load(imageUrl)
+        .into(object : CustomTarget<Bitmap>() {
+            override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) =
+                actionToProcess(resource, PostUtils.generateFullImageName(imageUrl))
+
+            override fun onLoadCleared(placeholder: Drawable?) {}
+        })
 
     private fun Intent.setDataAndTypeByUri(uri: Uri) = setDataAndType(uri, activity!!.contentResolver.getType(uri))
 
@@ -161,70 +179,49 @@ class PostsFragment : Fragment() {
         startActivity(Intent.createChooser(shareIntent, getString(R.string.share_image_dialog_title)))
     }
 
-    private fun getDirToSaveImage(isSaveToCacheDir: Boolean) = if (isSaveToCacheDir) {
-        context!!.cacheDir
-    } else {
-        context!!.externalMediaDirs
-    }
-
     /**
-     * Saves image-bitmap to internal dir and returns its Uri.
+     * Caches image-bitmap to internal dir and returns its Uri.
      */
-    private fun saveBitmapInternally(bitmap: Bitmap, bitmapFullName: String, isSaveToCacheDir: Boolean = true): Uri {
-        val imageFile: File = createFileToSaveBitmap(bitmapFullName, getDirToSaveImage(isSaveToCacheDir), isSaveToCacheDir)
+    private fun cacheBitmapInternally(bitmap: Bitmap, bitmapFullName: String): Uri {
+        val imageFile: File = createFileToCacheBitmap(bitmapFullName, context!!.cacheDir)
         FileOutputStream(imageFile).use {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
             return FileProvider.getUriForFile(context!!, POSTS_IMAGE_PROVIDER_AUTHORITIES, imageFile)
         }
     }
 
-    private fun saveImageToPublicDirectory(bitmap: Bitmap, bitmapFullName: String) =
+    private fun showToast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
+    private fun saveBitmapToPublicMediaDirectory(bitmap: Bitmap, bitmapFullName: String, bitmapMimeType: String): Uri {
+        val localImageUri: Uri
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val resolver: ContentResolver = activity!!.contentResolver
-            val contentValues = ContentValues()
-            contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, bitmapFullName)
-            contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpg")
-            contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
-            val imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
-            resolver.openOutputStream(imageUri)!!
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, bitmapFullName)
+                put(MediaStore.MediaColumns.MIME_TYPE, bitmapMimeType)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, PUBLIC_IMAGES_DIR)
+            }
+            localImageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
+            resolver.openOutputStream(localImageUri)!!
         } else {
-            val imagesDir: String = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString()
-            val image = File(imagesDir, bitmapFullName)
-            FileOutputStream(image)
+            val imageFileToSave = File(Environment.getExternalStoragePublicDirectory(PUBLIC_IMAGES_DIR), bitmapFullName)
+            localImageUri = imageFileToSave.toUri()
+            FileOutputStream(imageFileToSave)
         }.use {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
+            showToast(String.format(getString(R.string.successful_image_saving_notification_format), PUBLIC_IMAGES_DIR))
         }
-
-    private fun makeImagePublic(internalImageUri: Uri) {
-        val publicationIntent = Intent(Intent.ACTION_VIEW).apply {
-            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-            setDataAndTypeByUri(internalImageUri)
-        }
-        if (publicationIntent.resolveActivity(activity!!.packageManager) != null) {
-            startActivity(publicationIntent)
-//            Toast.makeText(activity, "Image is published", Toast.LENGTH_LONG).show()
-        }
+        return localImageUri
     }
 
-    private fun saveImageWithPublicAccess(imageUrl: String) =
-        downloadAndProcessImage(imageUrl, isSaveToCacheDir = false) { internalImageUri -> makeImagePublic(internalImageUri) }
-
-    private fun cacheImageAndShare(imageUrl: String) =
-        downloadAndProcessImage(imageUrl) { internalImageUri -> shareImage(internalImageUri) }
-
-    private fun downloadAndProcessImage(imageUrl: String, isSaveToCacheDir: Boolean = true, actionToProcess: (Uri) -> Unit) =
-        Glide.with(this)
-            .asBitmap()
-            .load(imageUrl)
-            .into(object : CustomTarget<Bitmap>() {
-                override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
-                    val bitmapName = PostUtils.generateFullImageName(MimeTypeMap.getFileExtensionFromUrl(imageUrl))
-                    val internalImageUri: Uri = saveBitmapInternally(resource, bitmapName, isSaveToCacheDir = isSaveToCacheDir)
-                    actionToProcess(internalImageUri)
-                }
-
-                override fun onLoadCleared(placeholder: Drawable?) {}
-            })
+    private fun showDialogToOpenImageInOtherApp(localImageUri: Uri, bitmapMimeType: String) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(localImageUri, bitmapMimeType)
+        }
+        if (intent.resolveActivity(activity!!.packageManager) != null) {
+            startActivity(intent)
+        }
+    }
 
     private fun synchronizePostsIfNeeded() = postsFragmentInterractor?.isNeedToSyncPosts()?.let { isNeedToSync ->
         postsViewModel.synchronizePostsIfNeeded(isNeedToSync)

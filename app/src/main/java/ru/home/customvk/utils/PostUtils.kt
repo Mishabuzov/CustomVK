@@ -1,5 +1,6 @@
 package ru.home.customvk.utils
 
+import android.webkit.MimeTypeMap
 import ru.home.customvk.models.local.Post
 import ru.home.customvk.models.local.PostSource
 import ru.home.customvk.models.network.Attachment
@@ -11,26 +12,19 @@ import java.util.*
 import kotlin.math.abs
 
 object PostUtils {
-
     private const val CACHED_IMAGES_PATH_FOR_SHARING = "shared_images"
-    private const val INTERNAL_FILE_PATH_FOR_PUBLIC_FILES = "public_images"
-
     const val POSTS_IMAGE_PROVIDER_AUTHORITIES = "ru.home.customvk.imageprovider"
 
     private const val POSTS_TIME_PATTERN_FORMAT = "dd.MM.yyyy в HH:mm"
 
     private const val PHOTO_ATTACHMENT_TYPE = "photo"
 
+    private const val DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
+
     fun List<Post>.filterByFavorites() = filter { it.isLiked }
 
-    private fun getSubDirToSave(isSaveToCacheDir: Boolean) = if (isSaveToCacheDir) {
-        CACHED_IMAGES_PATH_FOR_SHARING
-    } else {
-        INTERNAL_FILE_PATH_FOR_PUBLIC_FILES
-    }
-
-    fun createFileToSaveBitmap(bitmapFullName: String, dirToSave: File, isSaveToCacheDir: Boolean): File {
-        val fullPathToSave = File(dirToSave, getSubDirToSave(isSaveToCacheDir))
+    fun createFileToCacheBitmap(bitmapFullName: String, dirToSave: File): File {
+        val fullPathToSave = File(dirToSave, CACHED_IMAGES_PATH_FOR_SHARING)
         if (!fullPathToSave.exists()) {
             fullPathToSave.mkdirs()
         }
@@ -89,7 +83,12 @@ object PostUtils {
         return extractedPosts
     }
 
-    fun generateFullImageName(imageExtension: String) =
-        "image_${System.currentTimeMillis().convertTimestampToHumanReadableDate("yyyy-MM-dd_HH_mm_ss")}.$imageExtension"
+    fun generateFullImageName(imageUrl: String): String {
+        val imageExtension = MimeTypeMap.getFileExtensionFromUrl(imageUrl)
+        return "image_${System.currentTimeMillis().convertTimestampToHumanReadableDate("yyyy-MM-dd_HH_mm_ss")}.$imageExtension"
+    }
+
+    fun getImageMimeTypeByUrl(url: String): String =
+        MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(url)) ?: DEFAULT_IMAGE_MIME_TYPE
 
 }
