@@ -40,7 +40,7 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
     }
 
     private fun onSuccessfulFetchingPosts(newPosts: List<Post>) {
-        setupPostsValue(newPosts)
+        setPostsValue(newPosts)
         checkFavoritesVisibility()
     }
 
@@ -89,7 +89,7 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
 
     private fun areLikedPostsPresent(): Boolean = posts.value?.let { it.filterByFavorites().count() > 0 } ?: false
 
-    private fun setupPostsValue(updatedPosts: List<Post>) {
+    private fun setPostsValue(updatedPosts: List<Post>) {
         posts.value = updatedPosts
     }
 
@@ -130,7 +130,7 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
     private fun updatePost(updatedPost: Post, postIndex: Int) {
         val updatedPosts = posts.value!!.toMutableList()
         updatedPosts[postIndex] = updatedPost
-        setupPostsValue(updatedPosts)
+        setPostsValue(updatedPosts)
     }
 
     private fun onPositiveLikeAction(post: Post, postIndex: Int) {
@@ -160,7 +160,7 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ responseCode ->
-                Log.d(TAG, "post is hidden, response code $responseCode")
+                Log.d(TAG, "post is hidden, response code: $responseCode")
                 removePost(postIndex)
                 checkFavoritesVisibility()
             },
@@ -169,10 +169,13 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
         compositeDisposable.add(hidingDisposable)
     }
 
+    /**
+     * Post have to be removed in case of successful hiding or dislike in "favorites" tab.
+     */
     private fun removePost(postIndex: Int) {
         val updatedPosts = posts.value!!.toMutableList()
         updatedPosts.removeAt(postIndex)
-        setupPostsValue(updatedPosts)
+        setPostsValue(updatedPosts)
     }
 
     /**
