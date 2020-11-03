@@ -67,9 +67,7 @@ class LoginActivity : AppCompatActivity() {
     private fun showNotificationDialog(@StringRes messageRes: Int) = AlertDialog.Builder(this, R.style.AlertDialogStyle)
         .setTitle(R.string.authorization_failing_dialog_title)
         .setMessage(messageRes)
-        .setPositiveButton(
-            getString(android.R.string.ok)
-        ) { dialog, _ ->
+        .setPositiveButton(getString(android.R.string.ok)) { dialog, _ ->
             dialog.cancel()
             restartActivity()
         }
