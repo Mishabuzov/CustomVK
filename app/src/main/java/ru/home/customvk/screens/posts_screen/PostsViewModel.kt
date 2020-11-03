@@ -10,6 +10,7 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 import ru.home.customvk.RepositoryProvider
 import ru.home.customvk.models.local.Post
+import ru.home.customvk.utils.PostUtils
 import ru.home.customvk.utils.PostUtils.filterByFavorites
 import ru.home.customvk.utils.SingleLiveEvent
 
@@ -43,8 +44,8 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
         checkFavoritesVisibility()
     }
 
-    private fun onQueryError(errorMessage: String, throwable: Throwable) {
-        Log.e(TAG, errorMessage, throwable)
+    private fun onQueryError(logErrorMessage: String, throwable: Throwable) {
+        Log.e(TAG, logErrorMessage, throwable)
         showErrorDialogAction.call()
     }
 
@@ -61,20 +62,26 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
             .subscribe(
                 { newPosts -> onSuccessfulFetchingPosts(newPosts) },
                 { throwable ->
-                    onQueryError("exception in fetching posts from internet", throwable)
-                    fetchPostsFromDatabase()
+                    onQueryError("Error in fetching posts from internet", throwable)
+                    fetchPostsFromDatabase(isNetworkExceptionScenario = true)
                 }
             )
         compositeDisposable.add(fetchingPostsFromInternetDisposable)
     }
 
-    private fun fetchPostsFromDatabase() {
+    private fun fetchPostsFromDatabase(isNetworkExceptionScenario: Boolean = false) {
         val loadPostsDisposable = RepositoryProvider.postRepository
             .loadPostsFromDatabase(isFilterByFavorites)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
-                { newPosts -> onSuccessfulFetchingPosts(newPosts) },
+                { posts ->
+                    if (posts.isNotEmpty() && !PostUtils.isPostFresh(posts[0]) && !isNetworkExceptionScenario) {
+                        fetchPostsFromInternet()
+                    } else {
+                        onSuccessfulFetchingPosts(posts)
+                    }
+                },
                 { throwable -> onQueryError("Error in fetching posts from the database", throwable) }
             )
         compositeDisposable.add(loadPostsDisposable)

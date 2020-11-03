@@ -59,7 +59,7 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : Rec
         // bind header
         avatarImageView.loadImage(post.source.sourceIconUrl)
         groupNameTextView.text = post.source.sourceName
-        timeTextView.text = post.publicationDate
+        timeTextView.text = post.readablePublicationDate
 
         mainTextView.bindTextContent(post.text)
         // bind footer

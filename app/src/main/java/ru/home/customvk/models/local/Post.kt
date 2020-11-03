@@ -15,8 +15,11 @@ data class Post(
     @Embedded
     val source: PostSource,
 
-    @ColumnInfo(name = "publication_date")
-    val publicationDate: String,
+    @ColumnInfo(name = "insertion_time_millis")
+    val insertionTimeMillis: Long,
+
+    @ColumnInfo(name = "readable_publication_date")
+    val readablePublicationDate: String,
 
     @ColumnInfo(name = "text")
     var text: String,

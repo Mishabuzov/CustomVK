@@ -21,6 +21,8 @@ object PostUtils {
 
     private const val DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
 
+    private const val MILLIS_IN_3_HOURS: Long = 3600 * 1000 * 3
+
     fun List<Post>.filterByFavorites() = filter { it.isLiked }
 
     fun createFileToCacheBitmap(bitmapFullName: String, dirToSave: File): File {
@@ -34,7 +36,7 @@ object PostUtils {
     /**
      * convert milliseconds since January 1, 1970 to readable date in the provided format.
      */
-    private fun Long.convertTimestampToHumanReadableDate(timeFormat: String = POSTS_TIME_PATTERN_FORMAT): String {
+    private fun Long.convertMillisTimestampToHumanReadableDate(timeFormat: String = POSTS_TIME_PATTERN_FORMAT): String {
         val dateInMillisecond = Date(this)
         val sdf = SimpleDateFormat(timeFormat, Locale.getDefault())
         sdf.timeZone = TimeZone.getTimeZone("GMT+3")
@@ -44,7 +46,8 @@ object PostUtils {
     private fun PostNetworkModel.toPost(sourceName: String, sourceIconUrl: String) = Post(
         postId = postId,
         source = PostSource(sourceId, sourceName, sourceIconUrl),
-        publicationDate = (date * 1000).convertTimestampToHumanReadableDate(),
+        insertionTimeMillis = System.currentTimeMillis(),
+        readablePublicationDate = (date * 1000).convertMillisTimestampToHumanReadableDate(),
         text = text,
         pictureUrl = attachments?.filter { it.type == PHOTO_ATTACHMENT_TYPE }?.takeFirstPhotoUrl() ?: "",
         likesCount = likes.count,
@@ -85,10 +88,11 @@ object PostUtils {
 
     fun generateFullImageName(imageUrl: String): String {
         val imageExtension = MimeTypeMap.getFileExtensionFromUrl(imageUrl)
-        return "image_${System.currentTimeMillis().convertTimestampToHumanReadableDate("yyyy-MM-dd_HH_mm_ss")}.$imageExtension"
+        return "image_${System.currentTimeMillis().convertMillisTimestampToHumanReadableDate("yyyy-MM-dd_HH_mm_ss")}.$imageExtension"
     }
 
     fun getImageMimeTypeByUrl(url: String): String =
         MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(url)) ?: DEFAULT_IMAGE_MIME_TYPE
 
+    fun isPostFresh(post: Post): Boolean = (System.currentTimeMillis() - post.insertionTimeMillis) <= MILLIS_IN_3_HOURS
 }

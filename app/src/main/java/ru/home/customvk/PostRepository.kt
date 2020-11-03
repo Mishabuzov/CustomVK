@@ -34,8 +34,10 @@ private class DefaultPostRepository : PostRepository {
         }
 
     private fun downloadAndSavePosts(): Single<List<Post>> = fetchPostsFromInternet().map { downloadedPosts ->
-        postDao.deleteAllPosts()
-        postDao.savePosts(downloadedPosts)
+        if (downloadedPosts.isNotEmpty()) {
+            postDao.deleteAllPosts()
+            postDao.savePosts(downloadedPosts)
+        }
         downloadedPosts
     }
 
