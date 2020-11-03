@@ -13,11 +13,7 @@ object RepositoryProvider {
 
 private class DefaultPostRepository : PostRepository {
 
-    private val hiddenPostIds: MutableSet<Pair<Long, Long>> = hashSetOf()
-
     private val postDao: PostDao = VkApplication.instance.database.postDao()
-
-    private fun Single<List<Post>>.filterHiddenPosts() = map { posts -> posts.filter { it.postId to it.source.sourceId !in hiddenPostIds } }
 
     private fun Single<List<Post>>.filterFavoritePostsIfNeeded(isFilterByFavorites: Boolean) =
         map { posts ->
@@ -35,7 +31,7 @@ private class DefaultPostRepository : PostRepository {
             postDao.getFavoritePosts()
         } else {
             postDao.getPosts()
-        }.filterHiddenPosts()
+        }
 
     private fun downloadAndSavePosts(): Single<List<Post>> = fetchPostsFromInternet().map { downloadedPosts ->
         postDao.deleteAllPosts()
@@ -44,7 +40,6 @@ private class DefaultPostRepository : PostRepository {
     }
 
     override fun fetchPostsFromInternet(isFilterByFavorites: Boolean): Single<List<Post>> = downloadAndSavePosts()
-        .filterHiddenPosts()
         .filterFavoritePostsIfNeeded(isFilterByFavorites)
 
     override fun sendLikeRequest(post: Post, isPositiveLikeRequest: Boolean): Single<Post> =
@@ -59,12 +54,14 @@ private class DefaultPostRepository : PostRepository {
             updatedPost
         }
 
-    override fun rememberHiddenPost(hiddenPost: Post) = hiddenPostIds.add(hiddenPost.postId to hiddenPost.source.sourceId)
+    override fun hidePosts(postToHide: Post): Single<Int> =
+        postApi.ignorePost(postToHide.postId, postToHide.source.sourceId).map { it.vkResponseCode }
+
 }
 
 interface PostRepository {
     fun fetchPostsFromInternet(isFilterByFavorites: Boolean): Single<List<Post>>
     fun loadPostsFromDatabase(isFilterByFavorites: Boolean): Single<List<Post>>
     fun sendLikeRequest(post: Post, isPositiveLikeRequest: Boolean): Single<Post>
-    fun rememberHiddenPost(hiddenPost: Post): Boolean
+    fun hidePosts(postToHide: Post): Single<Int>
 }

@@ -148,9 +148,18 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
      * process hiding of post by swiping from right to left in the newsfeed.
      */
     fun hidePost(postIndex: Int) {
-        RepositoryProvider.postRepository.rememberHiddenPost(posts.value!![postIndex])
-        removePost(postIndex)
-        checkFavoritesVisibility()
+        val hidingDisposable = RepositoryProvider.postRepository
+            .hidePosts(posts.value!![postIndex])
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ responseCode ->
+                Log.d(TAG, "post is hidden, response code $responseCode")
+                removePost(postIndex)
+                checkFavoritesVisibility()
+            },
+                { throwable -> onQueryError("fail to hide post at $postIndex position", throwable) }
+            )
+        compositeDisposable.add(hidingDisposable)
     }
 
     private fun removePost(postIndex: Int) {
