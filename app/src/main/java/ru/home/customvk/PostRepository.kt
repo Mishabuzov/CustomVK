@@ -37,11 +37,11 @@ private class DefaultPostRepository : PostRepository {
             postDao.getPosts()
         }.filterHiddenPosts()
 
-    private fun downloadAndSavePosts(): Single<List<Post>> =
-        fetchPostsFromInternet().map { downloadedPosts ->
-            postDao.savePosts(downloadedPosts)
-            downloadedPosts
-        }
+    private fun downloadAndSavePosts(): Single<List<Post>> = fetchPostsFromInternet().map { downloadedPosts ->
+        postDao.deleteAllPosts()
+        postDao.savePosts(downloadedPosts)
+        downloadedPosts
+    }
 
     override fun fetchPostsFromInternet(isFilterByFavorites: Boolean): Single<List<Post>> = downloadAndSavePosts()
         .filterHiddenPosts()

@@ -204,6 +204,7 @@ class PostsFragment : Fragment() {
             localImageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
             resolver.openOutputStream(localImageUri)!!
         } else {
+            @Suppress("DEPRECATION")
             val imageFileToSave = File(Environment.getExternalStoragePublicDirectory(PUBLIC_IMAGES_DIR), bitmapFullName)
             localImageUri = imageFileToSave.toUri()
             FileOutputStream(imageFileToSave)
@@ -241,5 +242,6 @@ class PostsFragment : Fragment() {
         fun onChangesMade()
         fun isNeedToSyncPosts(): Boolean
         fun onSynchronizationComplete()
+        fun isNetworkAvailable(): Boolean
     }
 }

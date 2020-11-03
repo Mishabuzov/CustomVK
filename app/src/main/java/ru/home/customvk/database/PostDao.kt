@@ -19,8 +19,7 @@ interface PostDao {
     @Query("Select * FROM post where is_liked = 1")
     fun getFavoritePosts(): Single<List<Post>>
 
-    // TODO: implement DELETE Query when updating by time.
-//    @Query("DELETE FROM post")
-//    fun deleteAllPosts()
+    @Query("DELETE FROM post")
+    fun deleteAllPosts()
 
 }

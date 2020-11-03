@@ -23,17 +23,19 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
     fun getPostsLiveData() = posts as LiveData<List<Post>>
 
     val showErrorDialogAction: SingleLiveEvent<Void> = SingleLiveEvent()
-
     val onSynchronizationCompleteAction: SingleLiveEvent<Void> = SingleLiveEvent()
-
     val finishUpdatingAction: SingleLiveEvent<Void> = SingleLiveEvent()
-
     val updateFavoritesVisibilityAction: SingleLiveEvent<Boolean> = SingleLiveEvent()
 
     private val compositeDisposable = CompositeDisposable()
 
     init {
-        fetchPostsQuery()
+        if (isFilterByFavorites) {
+            fetchPostsFromDatabase()
+        } else {
+            // since "news" tab is initialized 1st after app's launching -> it should perform network query
+            fetchPostsFromInternet()
+        }
     }
 
     private fun onSuccessfulFetchingPosts(newPosts: List<Post>) {
@@ -41,7 +43,7 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
         checkFavoritesVisibility()
     }
 
-    private fun onErrorFetchingPosts(errorMessage: String, throwable: Throwable) {
+    private fun onQueryError(errorMessage: String, throwable: Throwable) {
         Log.e(TAG, errorMessage, throwable)
         showErrorDialogAction.call()
     }
@@ -57,30 +59,23 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
                 }
             }
             .subscribe(
-                { newPosts ->
-                    onSuccessfulFetchingPosts(newPosts)
-                },
+                { newPosts -> onSuccessfulFetchingPosts(newPosts) },
                 { throwable ->
-                    onErrorFetchingPosts("exception in fetching posts from internet", throwable)
+                    onQueryError("exception in fetching posts from internet", throwable)
+                    fetchPostsFromDatabase()
                 }
             )
         compositeDisposable.add(fetchingPostsFromInternetDisposable)
     }
 
-    private fun fetchPostsQuery() {
+    private fun fetchPostsFromDatabase() {
         val loadPostsDisposable = RepositoryProvider.postRepository
             .loadPostsFromDatabase(isFilterByFavorites)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
-                { newPosts ->
-                    if (newPosts.isNotEmpty()) {
-                        onSuccessfulFetchingPosts(newPosts)
-                    } else {
-                        fetchPostsFromInternet()
-                    }
-                },
-                { throwable -> onErrorFetchingPosts("Exception in fetching posts from the database", throwable) }
+                { newPosts -> onSuccessfulFetchingPosts(newPosts) },
+                { throwable -> onQueryError("Error in fetching posts from the database", throwable) }
             )
         compositeDisposable.add(loadPostsDisposable)
     }
@@ -120,10 +115,7 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
                     }
                     checkFavoritesVisibility()
                 },
-                { exception ->
-                    Log.e(TAG, "fail to like post at $postIndex position", exception)
-                    showErrorDialogAction.call()
-                }
+                { throwable -> onQueryError("fail to like post at $postIndex position", throwable) }
             )
         compositeDisposable.add(likeDisposable)
     }
@@ -174,7 +166,7 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
 
     fun synchronizePostsIfNeeded(isNeedToSync: Boolean) {
         if (isNeedToSync && posts.value != null) {
-            fetchPostsQuery()
+            fetchPostsFromDatabase()
             onSynchronizationCompleteAction.call()
         }
     }
