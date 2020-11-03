@@ -33,7 +33,7 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
         if (isFilterByFavorites) {
             fetchPostsFromDatabase()
         } else {
-            // since "news" tab is initialized 1st after app's launching -> it should perform network query
+            // since "news" tab is initialized immediately after authentication -> it should perform network query
             fetchPostsFromInternet()
         }
     }
@@ -149,7 +149,7 @@ open class PostsViewModel(private val isFilterByFavorites: Boolean) : ViewModel(
      */
     fun hidePost(postIndex: Int) {
         val hidingDisposable = RepositoryProvider.postRepository
-            .hidePosts(posts.value!![postIndex])
+            .hidePost(posts.value!![postIndex])
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ responseCode ->

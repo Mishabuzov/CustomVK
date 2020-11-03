@@ -54,14 +54,15 @@ private class DefaultPostRepository : PostRepository {
             updatedPost
         }
 
-    override fun hidePosts(postToHide: Post): Single<Int> =
-        postApi.ignorePost(postToHide.postId, postToHide.source.sourceId).map { it.vkResponseCode }
-
+    override fun hidePost(postToHide: Post): Single<Int> = postApi.ignorePost(postToHide.postId, postToHide.source.sourceId).map {
+        postDao.deletePost(postToHide)
+        it.vkResponseCode
+    }
 }
 
 interface PostRepository {
     fun fetchPostsFromInternet(isFilterByFavorites: Boolean): Single<List<Post>>
     fun loadPostsFromDatabase(isFilterByFavorites: Boolean): Single<List<Post>>
     fun sendLikeRequest(post: Post, isPositiveLikeRequest: Boolean): Single<Post>
-    fun hidePosts(postToHide: Post): Single<Int>
+    fun hidePost(postToHide: Post): Single<Int>
 }
