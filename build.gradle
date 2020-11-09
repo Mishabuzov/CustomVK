@@ -18,7 +18,6 @@ allprojects {
     repositories {
         google()
         jcenter()
-        maven { url "https://oss.jfrog.org/libs-snapshot" }
     }
 }
 
@@ -39,6 +38,15 @@ ext {
     recyclerViewVersion = '1.1.0'
     lifecycleExtensionsVersion = '2.2.0'
     materialDesignVersion = '1.2.1'
-    constraintLayoutVersion = '2.0.2'
+    constraintLayoutVersion = '2.0.4'
     rxJavaVersion = '2.1.1'
+    rxAndroidVersion = '2.1.1'
+    vkSdkVersion = '2.4.0'
+    okHttpLoggingInterceptorVersion = '4.9.0'
+    retrofitVersion = '2.9.0'
+    retrofitGsonConverterVersion = '2.9.0'
+    retrofitRxJavaAdapterVersion = '2.9.0'
+    stethoVersion = '1.5.1'
+    glideVersion = '4.11.0'
+    roomVersion = '2.2.5'
 }
