@@ -14,7 +14,8 @@ import ru.home.customvk.models.local.Post
 
 class PostAdapter(
     private val onLikeListener: (Int) -> Unit,
-    private val onRemoveSwipeListener: (Int) -> Unit
+    private val onRemoveSwipeListener: (Int) -> Unit,
+    private val onShareAction: (String) -> Unit
 ) : RecyclerView.Adapter<TextPostHolder>(), PostTouchHelperCallback.SwipeHelperAdapter {
 
     companion object {
@@ -35,7 +36,7 @@ class PostAdapter(
         return if (viewType == TYPE_TEXT_POST) {
             TextPostHolder(itemView) { position -> onItemLike(position) }
         } else {
-            ImagePostHolder(itemView) { position -> onItemLike(position) }
+            ImagePostHolder(itemView, onShareAction) { position -> onItemLike(position) }
         }
     }
 
@@ -55,8 +56,8 @@ class PostAdapter(
     override fun onItemLike(position: Int) = onLikeListener(position)
 
     class PostDiffCallback : DiffUtil.ItemCallback<Post>() {
-        override fun areItemsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost.id == newPost.id
-                && oldPost.source.id == newPost.source.id
+        override fun areItemsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost.postId == newPost.postId
+                && oldPost.source.sourceId == newPost.source.sourceId
 
         override fun areContentsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost == newPost
     }

@@ -23,4 +23,10 @@
     <!-- Posts Screen -->
     <dimen name="posts_divider_size">1dp</dimen>
     <dimen name="bottom_navigation_height">56dp</dimen>
+
+    <!-- bottom dialog on sharing item -->
+    <dimen name="sharing_dialog_item_padding">16dp</dimen>
+    <dimen name="sharing_dialog_item_drawable_padding">16dp</dimen>
+    <dimen name="sharing_dialog_item_height">60dp</dimen>
+
 </resources>

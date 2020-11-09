@@ -2,7 +2,7 @@ package ru.home.customvk.models.network
 
 import com.google.gson.annotations.SerializedName
 
-class User(
+class UserNetworkModel(
     val id: Long,
 
     @SerializedName("first_name")

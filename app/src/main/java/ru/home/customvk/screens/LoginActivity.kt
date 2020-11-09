@@ -2,9 +2,11 @@ package ru.home.customvk.screens
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.vk.api.sdk.VK
+import com.vk.api.sdk.VKTokenExpiredHandler
 import com.vk.api.sdk.auth.VKAccessToken
 import com.vk.api.sdk.auth.VKAuthCallback
 import com.vk.api.sdk.auth.VKScope
@@ -22,6 +24,15 @@ class LoginActivity : AppCompatActivity() {
             VK.login(this, arrayListOf(VKScope.WALL, VKScope.FRIENDS))
         } else {
             onSuccessfulLogin(accessToken)
+        }
+        VK.addTokenExpiredHandler(tokenTracker)
+    }
+
+    private val tokenTracker = object : VKTokenExpiredHandler {
+        override fun onTokenExpired() {
+            restartActivity()
+            PreferenceUtils.removeToken(this@LoginActivity)
+            showNotificationDialog(R.string.token_expired_message)
         }
     }
 
@@ -45,19 +56,18 @@ class LoginActivity : AppCompatActivity() {
                 onSuccessfulLogin(token.accessToken)
             }
 
-            override fun onLoginFailed(errorCode: Int) = showNotificationDialog()
+            override fun onLoginFailed(errorCode: Int) =
+                showNotificationDialog(R.string.authorization_failing_dialog_message)
         }
         if (data == null || !VK.onActivityResult(requestCode, resultCode, data, callback)) {
             super.onActivityResult(requestCode, resultCode, data)
         }
     }
 
-    private fun showNotificationDialog() = AlertDialog.Builder(this, R.style.AlertDialogStyle)
+    private fun showNotificationDialog(@StringRes messageRes: Int) = AlertDialog.Builder(this, R.style.AlertDialogStyle)
         .setTitle(R.string.authorization_failing_dialog_title)
-        .setMessage(R.string.authorization_failing_dialog_message)
-        .setPositiveButton(
-            getString(android.R.string.ok)
-        ) { dialog, _ ->
+        .setMessage(messageRes)
+        .setPositiveButton(getString(android.R.string.ok)) { dialog, _ ->
             dialog.cancel()
             restartActivity()
         }
