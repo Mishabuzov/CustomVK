@@ -1,4 +1,4 @@
-package ru.home.customvk.models.local
+package ru.home.customvk.domain
 
 import androidx.room.ColumnInfo
 import androidx.room.Embedded

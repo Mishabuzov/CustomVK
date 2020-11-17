@@ -1,11 +1,7 @@
-package ru.home.customvk.screens.posts_screen
+package ru.home.customvk.presentation.posts_screen
 
 import android.content.Context
 import android.content.Intent
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkInfo
-import android.os.Build
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -26,20 +22,6 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
     private val postsNewsFragment by lazy(NONE) { PostsFragment.newInstance() }
     private val postsFavoritesFragment by lazy(NONE) { PostsFragment.newInstance(isFavorite = true) }
 
-    private lateinit var connectivityManager: ConnectivityManager
-    private var isNetworkAvailble = false
-    private val networkCallback by lazy(NONE) {
-        object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                isNetworkAvailble = true
-            }
-
-            override fun onLost(network: Network) {
-                isNetworkAvailble = false
-            }
-        }
-    }
-
     private var isNeedToSyncPosts = false
     private var currentScreenItemId: Int = ScreenType.NEWS.screenItemId
     private var isFavoritesFragmentVisible = true
@@ -47,7 +29,6 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_news)
-        registerConnectivityManagerWithNetworkCallback()
         if (savedInstanceState == null) {
             replaceCurrentFragment(postsNewsFragment)
         } else {
@@ -59,13 +40,6 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
         bottom_navigation.setOnNavigationItemSelectedListener {
             switchScreenIfNeeded(it.itemId)
             true
-        }
-    }
-
-    private fun registerConnectivityManagerWithNetworkCallback() {
-        connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            connectivityManager.registerDefaultNetworkCallback(networkCallback)
         }
     }
 
@@ -111,32 +85,8 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
 
     override fun isNeedToSyncPosts(): Boolean = isNeedToSyncPosts
 
-    override fun onChangesMade() {
-        isNeedToSyncPosts = true
-    }
-
-    override fun onSynchronizationComplete() {
-        isNeedToSyncPosts = false
-    }
-
-    override fun isNetworkAvailable(): Boolean {
-        @Suppress("DEPRECATION")
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            val activeNetworkInfo: NetworkInfo? = connectivityManager.activeNetworkInfo
-            return activeNetworkInfo != null && activeNetworkInfo.isConnected
-        }
-        return isNetworkAvailble
-    }
-
-    private fun unregisterNetworkCallback() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            connectivityManager.unregisterNetworkCallback(networkCallback)
-        }
-    }
-
-    override fun onStop() {
-        unregisterNetworkCallback()
-        super.onStop()
+    override fun setNeedToSyncPosts(isNeedToSyncPosts: Boolean) {
+        this.isNeedToSyncPosts = isNeedToSyncPosts
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

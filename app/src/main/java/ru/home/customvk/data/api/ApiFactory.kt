@@ -1,4 +1,4 @@
-package ru.home.customvk.api
+package ru.home.customvk.data.api
 
 import com.facebook.stetho.okhttp3.StethoInterceptor
 import okhttp3.HttpUrl

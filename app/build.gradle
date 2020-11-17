@@ -47,6 +47,8 @@ dependencies {
     // Rx:
     implementation "io.reactivex.rxjava2:rxandroid:$rxAndroidVersion"
     implementation "io.reactivex.rxjava2:rxjava:$rxJavaVersion"
+    implementation "com.freeletics.rxredux:rxredux:$rxReduxVersion"
+    implementation "com.jakewharton.rxrelay2:rxrelay:$rxRelayVersion"
 
     // Network:
     implementation "com.squareup.okhttp3:logging-interceptor:$okHttpLoggingInterceptorVersion"
@@ -59,7 +61,7 @@ dependencies {
 
     // Glide:
     implementation "com.github.bumptech.glide:glide:$glideVersion"
-    annotationProcessor "com.github.bumptech.glide:compiler:$glideVersion"
+    kapt "com.github.bumptech.glide:compiler:$glideVersion"
 
     // Room with RxJava2 & Kotlin:
     implementation "androidx.room:room-runtime:$roomVersion"

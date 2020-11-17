@@ -1,9 +1,10 @@
-package ru.home.customvk
+package ru.home.customvk.data
 
 import io.reactivex.Single
-import ru.home.customvk.api.ApiFactory.postApi
-import ru.home.customvk.database.PostDao
-import ru.home.customvk.models.local.Post
+import ru.home.customvk.VkApplication
+import ru.home.customvk.data.api.ApiFactory.postApi
+import ru.home.customvk.data.database.PostDao
+import ru.home.customvk.domain.Post
 import ru.home.customvk.utils.PostUtils.filterByFavorites
 import ru.home.customvk.utils.PostUtils.toPosts
 
@@ -24,25 +25,33 @@ private class DefaultPostRepository : PostRepository {
             }
         }
 
-    private fun fetchPostsFromInternet() = postApi.fetchNewsfeedWithPosts().map { response -> response.newsfeed.toPosts() }
+    override fun fetchPosts(forceUpdate: Boolean, isFilterByFavorites: Boolean): Single<List<Post>> {
+        return if (forceUpdate) {
+            fetchPostsFromInternet(isFilterByFavorites)
+        } else {
+            fetchPostsFromDatabase(isFilterByFavorites)
+        }
+    }
 
-    override fun loadPostsFromDatabase(isFilterByFavorites: Boolean): Single<List<Post>> =
-        if (isFilterByFavorites) {
+    private fun fetchPostsFromDatabase(isFilterByFavorites: Boolean): Single<List<Post>> {
+        return if (isFilterByFavorites) {
             postDao.getFavoritePosts()
         } else {
             postDao.getPosts()
         }
-
-    private fun downloadAndSavePosts(): Single<List<Post>> = fetchPostsFromInternet().map { downloadedPosts ->
-        if (downloadedPosts.isNotEmpty()) {
-            postDao.deleteAllPosts()
-            postDao.savePosts(downloadedPosts)
-        }
-        downloadedPosts
     }
 
-    override fun fetchPostsFromInternet(isFilterByFavorites: Boolean): Single<List<Post>> = downloadAndSavePosts()
-        .filterFavoritePostsIfNeeded(isFilterByFavorites)
+    private fun fetchPostsFromInternet(isFilterByFavorites: Boolean): Single<List<Post>> {
+        return postApi.fetchNewsfeedWithPosts().map { response ->
+            val posts = response.newsfeed.toPosts()
+            if (posts.isNotEmpty()) {
+                postDao.deleteAllPosts()
+                postDao.savePosts(posts)
+            }
+            posts
+        }.filterFavoritePostsIfNeeded(isFilterByFavorites)
+    }
+
 
     override fun sendLikeRequest(post: Post, isPositiveLikeRequest: Boolean): Single<Post> =
         if (isPositiveLikeRequest) {
@@ -63,8 +72,9 @@ private class DefaultPostRepository : PostRepository {
 }
 
 interface PostRepository {
-    fun fetchPostsFromInternet(isFilterByFavorites: Boolean): Single<List<Post>>
-    fun loadPostsFromDatabase(isFilterByFavorites: Boolean): Single<List<Post>>
+    fun fetchPosts(forceUpdate: Boolean = false, isFilterByFavorites: Boolean = false): Single<List<Post>>
+
     fun sendLikeRequest(post: Post, isPositiveLikeRequest: Boolean): Single<Post>
+
     fun hidePost(postToHide: Post): Single<Int>
 }

@@ -14,4 +14,7 @@
     <color name="windowBackground">#3A3838</color>
 
     <color name="alertDialogTextColor">#343434</color>
+
+    <color name="bottomDialogTextColor">#3A3838</color>
+    <color name="bottomDialogBackground">#E4E4E4</color>
 </resources>

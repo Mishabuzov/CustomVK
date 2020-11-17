@@ -1,4 +1,4 @@
-package ru.home.customvk.models.network
+package ru.home.customvk.data.api.network_entities
 
 class Attachment(
     val type: String,

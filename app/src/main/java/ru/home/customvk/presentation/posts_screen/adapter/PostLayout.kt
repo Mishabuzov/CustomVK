@@ -1,4 +1,4 @@
-package ru.home.customvk
+package ru.home.customvk.presentation.posts_screen.adapter
 
 import android.content.Context
 import android.util.AttributeSet
@@ -13,6 +13,7 @@ import androidx.core.view.marginEnd
 import androidx.core.view.marginStart
 import androidx.core.view.marginTop
 import kotlinx.android.synthetic.main.view_post.view.*
+import ru.home.customvk.R
 
 class PostLayout @JvmOverloads constructor(
     context: Context,
