@@ -1,5 +1,6 @@
-package ru.home.customvk.screens.posts_screen
+package ru.home.customvk.presentation.posts_screen.adapter
 
+import android.graphics.Bitmap
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.AsyncListDiffer
@@ -10,12 +11,12 @@ import androidx.recyclerview.widget.ItemTouchHelper.START
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import ru.home.customvk.R
-import ru.home.customvk.models.local.Post
+import ru.home.customvk.domain.Post
 
 class PostAdapter(
     private val onLikeListener: (Int) -> Unit,
     private val onRemoveSwipeListener: (Int) -> Unit,
-    private val onShareAction: (String) -> Unit
+    private val onShareAction: (Bitmap, String) -> Unit
 ) : RecyclerView.Adapter<TextPostHolder>(), PostTouchHelperCallback.SwipeHelperAdapter {
 
     companion object {

@@ -11,4 +11,9 @@
         android:layout_height="match_parent"
         tools:listitem="@layout/post_list_item" />
 
+    <include
+        android:id="@+id/loading"
+        layout="@layout/inc_loading"
+        android:visibility="gone" />
+
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

@@ -27,7 +27,7 @@ task clean(type: Delete) {
 
 ext {
     // Sdk and tools:
-    minSdkVersion = 23
+    minSdkVersion = 21
     targetSdkVersion = 30
     compileSdkVersion = 30
 
@@ -39,7 +39,7 @@ ext {
     lifecycleExtensionsVersion = '2.2.0'
     materialDesignVersion = '1.2.1'
     constraintLayoutVersion = '2.0.4'
-    rxJavaVersion = '2.1.1'
+    rxJavaVersion = '2.2.20'
     rxAndroidVersion = '2.1.1'
     vkSdkVersion = '2.4.0'
     okHttpLoggingInterceptorVersion = '4.9.0'
@@ -49,4 +49,6 @@ ext {
     stethoVersion = '1.5.1'
     glideVersion = '4.11.0'
     roomVersion = '2.2.5'
+    rxRelayVersion = '2.1.1'
+    rxReduxVersion = '1.0.1'
 }

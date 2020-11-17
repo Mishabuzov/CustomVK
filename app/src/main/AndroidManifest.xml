@@ -2,6 +2,7 @@
     package="ru.home.customvk">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:name=".VkApplication"
@@ -12,10 +13,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <activity android:name="ru.home.customvk.screens.posts_screen.PostsActivity" />
+        <activity android:name="ru.home.customvk.presentation.posts_screen.PostsActivity" />
 
         <activity
-            android:name=".screens.LoginActivity"
+            android:name=".presentation.LoginActivity"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

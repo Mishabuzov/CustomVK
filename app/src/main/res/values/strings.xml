@@ -8,12 +8,13 @@
 
     <!-- dialog messages -->
     <string name="posts_loading_dialog_error_message">При обработке запроса произошла ошибка</string>
-    <string name="posts_loading_dialog_error_title">Ошибка</string>
+    <string name="default_dialog_error_title">Ошибка</string>
     <string name="authorization_failing_dialog_message">Для использования приложения необходимо авторизоваться</string>
     <string name="authorization_failing_dialog_title">Уведомление</string>
     <string name="token_expired_message">Срок действия вашего токена истёк. Необходимо заново авторизоваться.</string>
     <string name="share_image_dialog_title">Поделиться изображением:</string>
     <string name="successful_image_saving_notification_format">Изображение успешно сохранено в папку %1$s.</string>
+    <string name="saving_to_gallery_error_message">Для сохранения изображения необходимо дать приложению доступ на запись.</string>
 
     <!-- image share dialog options -->
     <string name="share_image_dialog_save_option">Сохранить изображение в галлерею</string>

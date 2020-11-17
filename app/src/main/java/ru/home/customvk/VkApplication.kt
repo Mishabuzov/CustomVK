@@ -3,7 +3,7 @@ package ru.home.customvk
 import android.app.Application
 import androidx.room.Room
 import com.facebook.stetho.Stetho
-import ru.home.customvk.database.VkDatabase
+import ru.home.customvk.data.database.VkDatabase
 
 class VkApplication : Application() {
 

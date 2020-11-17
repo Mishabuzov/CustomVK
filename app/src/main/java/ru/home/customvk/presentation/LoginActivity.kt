@@ -1,4 +1,4 @@
-package ru.home.customvk.screens
+package ru.home.customvk.presentation
 
 import android.content.Intent
 import android.os.Bundle
@@ -11,8 +11,8 @@ import com.vk.api.sdk.auth.VKAccessToken
 import com.vk.api.sdk.auth.VKAuthCallback
 import com.vk.api.sdk.auth.VKScope
 import ru.home.customvk.R
-import ru.home.customvk.api.ApiFactory
-import ru.home.customvk.screens.posts_screen.PostsActivity
+import ru.home.customvk.data.api.ApiFactory
+import ru.home.customvk.presentation.posts_screen.PostsActivity
 import ru.home.customvk.utils.PreferenceUtils
 
 class LoginActivity : AppCompatActivity() {
@@ -21,7 +21,7 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val accessToken = PreferenceUtils.getToken(this)
         if (accessToken.isNullOrEmpty()) {
-            VK.login(this, arrayListOf(VKScope.WALL, VKScope.FRIENDS))
+            VK.login(this, arrayListOf(VKScope.WALL, VKScope.FRIENDS, VKScope.OFFLINE))
         } else {
             onSuccessfulLogin(accessToken)
         }

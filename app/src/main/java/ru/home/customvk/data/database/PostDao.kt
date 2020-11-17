@@ -1,13 +1,13 @@
-package ru.home.customvk.database
+package ru.home.customvk.data.database
 
 import androidx.room.*
 import io.reactivex.Single
-import ru.home.customvk.models.local.Post
+import ru.home.customvk.domain.Post
 
 @Dao
 interface PostDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert
     fun savePosts(newPosts: List<Post>)
 
     @Update

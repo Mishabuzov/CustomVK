@@ -1,11 +1,10 @@
 package ru.home.customvk.utils
 
-import android.webkit.MimeTypeMap
-import ru.home.customvk.models.local.Post
-import ru.home.customvk.models.local.PostSource
-import ru.home.customvk.models.network.Attachment
-import ru.home.customvk.models.network.NewsfeedObject
-import ru.home.customvk.models.network.PostNetworkModel
+import ru.home.customvk.data.api.network_entities.NewsfeedObject
+import ru.home.customvk.data.api.network_entities.PostNetworkModel
+import ru.home.customvk.domain.Post
+import ru.home.customvk.domain.PostSource
+import ru.home.customvk.utils.AttachmentUtils.takeFirstPhotoUrl
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -19,11 +18,11 @@ object PostUtils {
 
     private const val PHOTO_ATTACHMENT_TYPE = "photo"
 
-    private const val DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
-
-    private const val MILLIS_IN_3_HOURS: Long = 3600 * 1000 * 3
+    internal const val DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
 
     fun List<Post>.filterByFavorites() = filter { it.isLiked }
+
+    fun List<Post>.areLikedPostPresent(): Boolean = filterByFavorites().count() > 0
 
     fun createFileToCacheBitmap(bitmapFullName: String, dirToSave: File): File {
         val fullPathToSave = File(dirToSave, CACHED_IMAGES_PATH_FOR_SHARING)
@@ -36,7 +35,7 @@ object PostUtils {
     /**
      * convert milliseconds since January 1, 1970 to readable date in the provided format.
      */
-    private fun Long.convertMillisTimestampToHumanReadableDate(timeFormat: String = POSTS_TIME_PATTERN_FORMAT): String {
+    internal fun Long.convertMillisTimestampToHumanReadableDate(timeFormat: String = POSTS_TIME_PATTERN_FORMAT): String {
         val dateInMillisecond = Date(this)
         val sdf = SimpleDateFormat(timeFormat, Locale.getDefault())
         sdf.timeZone = TimeZone.getTimeZone("GMT+3")
@@ -57,15 +56,15 @@ object PostUtils {
         viewings = views?.count ?: 0
     )
 
-    /**
-     * considered that all attachments have photo type.
-     */
-    private fun List<Attachment>.takeFirstPhotoUrl() =
-        if (isNotEmpty()) {
-            get(0).photo.sizes[0].url
-        } else {
-            ""
-        }
+    fun Post.setLikedAndIncreaseLikesCount() {
+        isLiked = true
+        likesCount++
+    }
+
+    fun Post.setDislikedAndDecreaseLikesCount() {
+        isLiked = false
+        likesCount--
+    }
 
     fun NewsfeedObject.toPosts(): List<Post> {
         val extractedPosts: MutableList<Post> = mutableListOf()
@@ -85,14 +84,4 @@ object PostUtils {
         }
         return extractedPosts
     }
-
-    fun generateFullImageName(imageUrl: String): String {
-        val imageExtension = MimeTypeMap.getFileExtensionFromUrl(imageUrl)
-        return "image_${System.currentTimeMillis().convertMillisTimestampToHumanReadableDate("yyyy-MM-dd_HH_mm_ss")}.$imageExtension"
-    }
-
-    fun getImageMimeTypeByUrl(url: String): String =
-        MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(url)) ?: DEFAULT_IMAGE_MIME_TYPE
-
-    fun isPostFresh(post: Post): Boolean = (System.currentTimeMillis() - post.insertionTimeMillis) <= MILLIS_IN_3_HOURS
 }

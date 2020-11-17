@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    tools:parentTag="ru.home.customvk.PostLayout">
+    tools:parentTag="ru.home.customvk.presentation.posts_screen.adapter.PostLayout">
 
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/avatarImageView"

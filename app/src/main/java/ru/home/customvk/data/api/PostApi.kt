@@ -1,12 +1,12 @@
-package ru.home.customvk.api
+package ru.home.customvk.data.api
 
 import io.reactivex.Single
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
-import ru.home.customvk.models.network.HidingResponse
-import ru.home.customvk.models.network.LikeResponse
-import ru.home.customvk.models.network.NewsfeedResponse
+import ru.home.customvk.data.api.network_entities.HidingResponse
+import ru.home.customvk.data.api.network_entities.LikeResponse
+import ru.home.customvk.data.api.network_entities.NewsfeedResponse
 
 interface PostApi {
 

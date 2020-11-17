@@ -1,5 +1,7 @@
-package ru.home.customvk.screens.posts_screen
+package ru.home.customvk.presentation.posts_screen.adapter
 
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
@@ -8,13 +10,15 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
 import kotlinx.android.synthetic.main.view_post.view.*
 import ru.home.customvk.R
-import ru.home.customvk.models.local.Post
+import ru.home.customvk.domain.Post
 
 open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : RecyclerView.ViewHolder(itemView) {
 
-    protected fun ImageView.loadImage(imageUrl: String) = Glide.with(this)
+    private fun ImageView.loadImage(imageUrl: String) = Glide.with(this)
         .load(imageUrl)
         .into(this)
 
@@ -72,17 +76,28 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : Rec
 
 class ImagePostHolder(
     itemView: View,
-    val onShareAction: (String) -> Unit,
+    val onShareAction: (Bitmap, String) -> Unit,
     onLikeListener: (Int) -> Unit
 ) : TextPostHolder(itemView, onLikeListener) {
 
+    private fun ImageView.loadImageAndConfigureSharing(imageUrl: String) = Glide.with(this)
+        .asBitmap()
+        .load(imageUrl)
+        .into(object : CustomTarget<Bitmap>() {
+            override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                setImageBitmap(resource)
+                itemView.shareButton.setOnClickListener { onShareAction(resource, imageUrl) }
+            }
+
+            override fun onLoadCleared(placeholder: Drawable?) {}
+        })
+
     override fun bind(post: Post) {
         super.bind(post)
-        itemView.shareButton.setOnClickListener { onShareAction(post.pictureUrl) }
         // bind picture
         with(itemView.postImageView) {
             if (post.pictureUrl.isNotBlank()) {
-                loadImage(post.pictureUrl)
+                loadImageAndConfigureSharing(post.pictureUrl)
             } else {
                 setImageResource(0)
             }
