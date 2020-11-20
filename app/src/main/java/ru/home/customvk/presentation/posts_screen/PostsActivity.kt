@@ -60,8 +60,17 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
         replaceCurrentFragment(fragmentToLoad)
     }
 
+    private fun getFragmentByScreenId(): PostsFragment {
+        return when (currentScreenItemId) {
+            ScreenType.NEWS.screenItemId -> postsNewsFragment
+            ScreenType.FAVORITES.screenItemId -> postsFavoritesFragment
+            else -> throw IllegalArgumentException("Fragment with detected id is not yet implemented")
+        }
+    }
+
     private fun switchScreenIfNeeded(screenItemId: Int) {
         if (currentScreenItemId != screenItemId) {
+            getFragmentByScreenId().setNeutralStateBeforeChangingFragment()
             setFragmentByScreenId(screenItemId)
         }
     }

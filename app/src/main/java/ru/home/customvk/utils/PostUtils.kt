@@ -56,14 +56,28 @@ object PostUtils {
         viewings = views?.count ?: 0
     )
 
-    fun Post.setLikedAndIncreaseLikesCount() {
+    private fun Post.setLikedAndIncreaseLikesCount() {
         isLiked = true
         likesCount++
     }
 
-    fun Post.setDislikedAndDecreaseLikesCount() {
+    private fun Post.setDislikedAndDecreaseLikesCount() {
         isLiked = false
         likesCount--
+    }
+
+    /**
+     * Likes (or dislikes) post at "postIndex" position, and returns it as the result.
+     */
+    fun MutableList<Post>.likePostAtPosition(postIndex: Int): Post {
+        val postToUpdate = this[postIndex].copy()
+        if (postToUpdate.isLiked) {
+            postToUpdate.setDislikedAndDecreaseLikesCount()
+        } else {
+            postToUpdate.setLikedAndIncreaseLikesCount()
+        }
+        this[postIndex] = postToUpdate
+        return postToUpdate
     }
 
     fun NewsfeedObject.toPosts(): List<Post> {

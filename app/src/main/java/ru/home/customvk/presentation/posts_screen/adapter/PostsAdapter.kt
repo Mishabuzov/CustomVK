@@ -1,9 +1,9 @@
 package ru.home.customvk.presentation.posts_screen.adapter
 
 import android.graphics.Bitmap
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.END
@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import ru.home.customvk.R
 import ru.home.customvk.domain.Post
+import ru.home.customvk.utils.PostUtils.convertMillisTimestampToHumanReadableDate
 
 class PostAdapter(
     private val onLikeListener: (Int) -> Unit,
@@ -24,12 +25,13 @@ class PostAdapter(
         private const val TYPE_IMAGE_POST = 1
     }
 
-    private val postsDiffer = AsyncListDiffer(this, PostDiffCallback())
+//    private val postsDiffer = AsyncListDiffer(this, PostDiffCallback())
 
     var posts: List<Post> = emptyList()
         set(value) {
             field = value
-            postsDiffer.submitList(value)
+            notifyDataSetChanged()
+//            postsDiffer.submitList(value)
         }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextPostHolder {
@@ -41,7 +43,11 @@ class PostAdapter(
         }
     }
 
-    override fun onBindViewHolder(holder: TextPostHolder, position: Int) = holder.bind(posts[position])
+    override fun onBindViewHolder(holder: TextPostHolder, position: Int) {
+        val date: String = System.currentTimeMillis().convertMillisTimestampToHumanReadableDate("dd.MM.yyyy в HH:mm:ss")
+        Log.d("HOLDER", "Bind is called, time: $date")
+        holder.bind(posts[position])
+    }
 
     override fun getItemViewType(position: Int): Int =
         if (posts[position].pictureUrl.isBlank()) {

@@ -5,78 +5,44 @@ import ru.home.customvk.domain.Post
 data class State(
     val posts: List<Post> = emptyList(),
     val isLoading: Boolean = false,
-    val isUpdatingFinished: Boolean = false,
-    val isSynchronizationNeeded: Boolean = false,
+    val isRefreshing: Boolean = false,
+    val isNeedToSync: Boolean = false,
+    val isUpdatingFavoritesVisibility: Boolean = false,
     val error: Throwable? = null,
-    val likeStateInfo: LikeStateInfo? = null,
-    val indexOfPostToHide: Int? = null
 )
 
-class LikeStateInfo(val positionOfPostToLike: Int, val isPositiveLike: Boolean)
+private fun State.checkIfSyncIsNeeded(isNeedToSyncAfterUpdate: Boolean, isSyncCompleted: Boolean): Boolean {
+    return when {
+        isSyncCompleted -> false
+        isNeedToSyncAfterUpdate -> true
+        else -> isNeedToSync
+    }
+}
 
-internal fun State.reduce(action: Action): State = when (action) {
-    is Action.PostsLoaded -> copy(
+fun State.reduce(action: Action): State = when (action) {
+    is Action.LoadPosts -> copy(
+        isLoading = action.isLoading,
+        isRefreshing = false,
+        isUpdatingFavoritesVisibility = false,
+        error = null,
+    )
+    is Action.PostsUpdated -> copy(
         posts = action.posts,
         isLoading = false,
+        isRefreshing = action.isRefreshing,
+        isUpdatingFavoritesVisibility = action.isUpdatingFavoritesVisibility,
+        error = null,
+        isNeedToSync = checkIfSyncIsNeeded(
+            isNeedToSyncAfterUpdate = action.isNeedToSyncAfterUpdate,
+            isSyncCompleted = action.isSyncCompleted
+        ),
     )
-    is Action.ErrorLoadingPosts -> copy(
+    is Action.ErrorUpdatingPosts -> copy(
+        posts = action.posts ?: posts,
         isLoading = false,
-        isUpdatingFinished = false,
-        error = action.error
-    )
-    is Action.LoadFirstPage -> copy(
-        isLoading = true,
-        error = null,
-        isUpdatingFinished = false,
-    )
-    is Action.SynchronizePosts -> copy(
-        error = null,
-        isUpdatingFinished = false,
-    )
-    is Action.FinishSynchronization -> copy(
-        posts = action.posts,
-        isSynchronizationNeeded = false
-    )
-    is Action.RefreshPosts -> copy(
-        error = null,
-    )
-    is Action.FinishRefreshing -> copy(
-        posts = action.posts,
-        isSynchronizationNeeded = true,
-        isUpdatingFinished = true,
-    )
-    is Action.LikePost -> copy(
-        isUpdatingFinished = false,
-        likeStateInfo = LikeStateInfo(action.postIndex, action.isPositiveLike),
-        error = null
-    )
-    is Action.PostIsLiked -> copy(
-        posts = action.posts,
-        isSynchronizationNeeded = true,
-        likeStateInfo = null
-    )
-    is Action.ErrorLikePosts -> copy(
+        isRefreshing = false,
+        isUpdatingFavoritesVisibility = true,
         error = action.error,
-        posts = action.posts,
-        likeStateInfo = null
     )
-    is Action.UpdatePostsLocally -> copy(
-        error = null,
-        posts = action.posts
-    )
-    is Action.HidePost -> copy(
-        isUpdatingFinished = false,
-        error = null,
-        indexOfPostToHide = action.postIndex
-    )
-    is Action.PostIsHidden -> copy(
-        indexOfPostToHide = null,
-        posts = action.posts,
-        isSynchronizationNeeded = true
-    )
-    is Action.ErrorHidePosts -> copy(
-        indexOfPostToHide = null,
-        posts = action.posts,
-        error = action.error
-    )
+    Action.PostsCleared -> State(isNeedToSync = isNeedToSync)
 }

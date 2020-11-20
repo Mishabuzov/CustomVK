@@ -42,7 +42,6 @@ import java.io.File
 import java.io.FileOutputStream
 import kotlin.LazyThreadSafetyMode.NONE
 
-
 class PostsFragment : Fragment() {
 
     companion object {
@@ -81,41 +80,11 @@ class PostsFragment : Fragment() {
             postsFragmentInterractor = (context as PostsFragmentInterractor)
         }
         configureLayout()
-        synchronizePostsIfNeeded()
         postsViewModel.getStateLiveData().observe(viewLifecycleOwner, ::render)
-    }
-
-    private fun render(state: State) {
-        loading.isVisible = state.isLoading
-
-        postsRecycler.isVisible = state.posts.isNotEmpty()
-        if (!state.posts.isNullOrEmpty()) {
-            adapter.posts = state.posts
+        if (savedInstanceState == null) {
+            postsViewModel.onAttachViewModel()
         }
-
-        state.error?.let { showQueryErrorDialog() }
-
-        postsFragmentInterractor?.updateFavoritesVisibility(state.posts.areLikedPostPresent())
-
-        postsFragmentInterractor?.setNeedToSyncPosts(state.isSynchronizationNeeded)
-
-        postsRefresher.isRefreshing = false
-        if (state.isUpdatingFinished) {
-            postsRecycler.post { layoutManager.scrollToPosition(0) }
-        }
-    }
-
-    private fun showQueryErrorDialog() = showErrorDialog(R.string.posts_loading_dialog_error_message)
-
-    private fun showErrorDialog(@StringRes resErrorMessage: Int, @StringRes resTitle: Int = R.string.default_dialog_error_title) {
-        AlertDialog.Builder(requireContext(), R.style.AlertDialogStyle)
-            .setTitle(resTitle)
-            .setMessage(resErrorMessage)
-            .setPositiveButton(getString(android.R.string.ok)) { dialog, _ ->
-                dialog.cancel()
-            }
-            .create()
-            .show()
+        synchronizePostsIfNeeded()
     }
 
     private fun configureLayout() {
@@ -128,7 +97,42 @@ class PostsFragment : Fragment() {
 
         ItemTouchHelper(PostTouchHelperCallback(adapter)).attachToRecyclerView(postsRecycler)
 
-        postsRefresher.setOnRefreshListener { postsViewModel.input.accept(Action.RefreshPosts) }
+        postsRefresher.setOnRefreshListener(postsViewModel::refreshPosts)
+    }
+
+    private fun render(state: State) {
+        loading.isVisible = state.isLoading
+
+        postsRecycler.isVisible = !state.posts.isNullOrEmpty()
+        if (state.posts.isNotEmpty()) {
+            adapter.posts = state.posts
+        }
+
+        state.error?.let { showQueryErrorDialog() }
+
+        if (state.isUpdatingFavoritesVisibility) {
+            postsFragmentInterractor?.updateFavoritesVisibility(state.posts.areLikedPostPresent())
+        }
+
+        postsFragmentInterractor?.setNeedToSyncPosts(state.isNeedToSync)
+
+        if (state.isRefreshing) {
+            postsRefresher.isRefreshing = false
+            postsRecycler.post { layoutManager.scrollToPosition(0) }
+        }
+    }
+
+    fun setNeutralStateBeforeChangingFragment() = postsViewModel.setNeutralState()
+
+    private fun showQueryErrorDialog() = showErrorDialog(R.string.posts_loading_dialog_error_message)
+
+    private fun showErrorDialog(@StringRes resErrorMessage: Int, @StringRes resTitle: Int = R.string.default_dialog_error_title) {
+        AlertDialog.Builder(requireContext(), R.style.AlertDialogStyle)
+            .setTitle(resTitle)
+            .setMessage(resErrorMessage)
+            .setPositiveButton(getString(android.R.string.ok)) { dialog, _ -> dialog.cancel() }
+            .create()
+            .show()
     }
 
     private fun createAdapter() = PostAdapter(

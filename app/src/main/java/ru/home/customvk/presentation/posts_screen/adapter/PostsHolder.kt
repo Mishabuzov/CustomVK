@@ -18,6 +18,10 @@ import ru.home.customvk.domain.Post
 
 open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : RecyclerView.ViewHolder(itemView) {
 
+    private companion object {
+        private const val DELAY_FOR_DISABLING_LIKE_AFTER_CLICK_MS = 500L
+    }
+
     private fun ImageView.loadImage(imageUrl: String) = Glide.with(this)
         .load(imageUrl)
         .into(this)
@@ -44,7 +48,11 @@ open class TextPostHolder(itemView: View, val onLikeAction: (Int) -> Unit) : Rec
             compoundDrawablePadding = 0
         }
         setCompoundDrawablesWithIntrinsicBounds(likeDrawable, 0, 0, 0)
-        likeButton.setOnClickListener { onLikeAction(adapterPosition) }
+        likeButton.setOnClickListener {
+            isEnabled = false
+            onLikeAction(adapterPosition)
+            postDelayed({ isEnabled = true }, DELAY_FOR_DISABLING_LIKE_AFTER_CLICK_MS)
+        }
     }
 
     /**
