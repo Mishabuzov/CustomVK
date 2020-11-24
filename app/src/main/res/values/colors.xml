@@ -2,12 +2,12 @@
 <resources>
     <color name="colorPrimary">#1B7EF6</color>
     <color name="colorPrimaryDark">#CC1B4AF6</color>
-    <color name="colorAccent">#03DAC5</color>
+    <color name="colorAccent">#559FF8</color>
 
     <color name="titleTextColor">#CDCCCC</color>
     <color name="textColorPrimary">#E4E4E4</color>
     <color name="textColorSecondary">#B6B6B6</color>
-    <color name="textColorShadowed">#4E4E4E</color>
+    <color name="textColorShadowed">#787575</color>
 
     <color name="inactiveActionButtonColor">#B6B6B6</color>
 
