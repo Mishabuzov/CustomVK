@@ -1,5 +1,7 @@
 package ru.home.customvk.presentation.posts_screen
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -17,17 +19,16 @@ import ru.home.customvk.data.RepositoryProvider
 import ru.home.customvk.domain.Post
 import ru.home.customvk.presentation.BaseRxViewModel
 import ru.home.customvk.utils.PostUtils.likePostAtPosition
-import java.util.concurrent.TimeUnit
 
 private typealias PostSideEffect = SideEffect<State, out Action>
 
-class PostsViewModel(private val isFilterByFavorites: Boolean) : BaseRxViewModel() {
+class PostsViewModel(private val isFilterByFavorites: Boolean, private val isFirstLoading: Boolean) : BaseRxViewModel() {
 
     private companion object {
         private const val TAG = "POSTS_VIEW_MODEL"
 
-        // this is a small delay to let recyclerView finish animation of previous post's updating & avoid possible inconsistency error.
-        private const val UPDATING_DELAY_MILLIS = 500L
+        // small delay to prevent flickering visual effects and recycler's inconsistency states.
+        private const val UPDATING_DELAY_MILLIS = 200L
     }
 
     private val inputRelay: Relay<Action> = PublishRelay.create()
@@ -36,7 +37,7 @@ class PostsViewModel(private val isFilterByFavorites: Boolean) : BaseRxViewModel
         initialState = State(),
         sideEffects = listOf(loadPosts()),
         reducer = { state, action -> state.reduce(action) }
-    ).distinctUntilChanged()
+    )
 
     private val currentState: MutableLiveData<State> = MutableLiveData()
     fun getStateLiveData() = currentState as LiveData<State>
@@ -44,45 +45,31 @@ class PostsViewModel(private val isFilterByFavorites: Boolean) : BaseRxViewModel
     private var posts: List<Post> = emptyList()
 
     fun onAttachViewModel() {
-        state.observeOn(AndroidSchedulers.mainThread())
-            .subscribe { currentState.value = it }
+        state.subscribe { currentState.value = it }
             .disposeOnFinish()
 
-        if (posts.isEmpty()) {
-            input.accept(Action.LoadPosts())  // show cached posts firstly
-            if (!isFilterByFavorites) {
-                refreshPosts(isNeedToSyncAfterUpdate = false)  // silent update, don't sync because of 1st loading.
-            }
+        input.accept(Action.LoadPosts())  // show cached posts firstly.
+        if (!isFilterByFavorites && isFirstLoading) {
+            refreshPosts()  // silent update from network on 1st loading.
         }
     }
 
-    fun setNeutralState() =
-        input.accept(Action.PostsCleared)
+    fun setNeutralState() = input.accept(Action.PostsCleared)
 
-    fun refreshPosts(isNeedToSyncAfterUpdate: Boolean = true) {
+    fun refreshPosts() {
         input.accept(
             Action.LoadPosts(
                 isLoading = false,
                 isRefreshing = true,
-                isNeedToSyncAfterUpdate = isNeedToSyncAfterUpdate,
                 isUpdatingFavoritesVisibility = true
             )
         )
     }
 
-    fun synchronizePostsIfNeeded(isNeedToSync: Boolean) {
-        if (isNeedToSync) {
-            input.accept(Action.LoadPosts(isLoading = false, isSyncStarted = true))
-        } else {
-            input.accept(Action.PostsUpdated(posts = posts))
-        }
-    }
-
     private fun loadPosts(): PostSideEffect {
         return { actions, _ ->
             actions.ofType(Action.LoadPosts::class.java)
-                .distinctUntilChanged()
-                .switchMap { loadingAction ->
+                .flatMap { loadingAction ->
                     RepositoryProvider.postRepository
                         .fetchPosts(forceUpdate = loadingAction.isRefreshing, isFilterByFavorites = isFilterByFavorites)
                         .subscribeOn(Schedulers.io())
@@ -92,14 +79,12 @@ class PostsViewModel(private val isFilterByFavorites: Boolean) : BaseRxViewModel
                             posts = it
                             Action.PostsUpdated(
                                 posts = posts,
-                                isNeedToSyncAfterUpdate = loadingAction.isNeedToSyncAfterUpdate,
                                 isUpdatingFavoritesVisibility = loadingAction.isUpdatingFavoritesVisibility,
-                                isSyncCompleted = loadingAction.isSyncStarted,
                                 isRefreshing = loadingAction.isRefreshing
                             ) as Action
                         }
+                        .onErrorReturn { error -> Action.ErrorUpdatingPosts(error = error, isRefreshing = true) }
                 }
-                .onErrorReturn { error -> Action.ErrorUpdatingPosts(error) }
         }
     }
 
@@ -112,7 +97,7 @@ class PostsViewModel(private val isFilterByFavorites: Boolean) : BaseRxViewModel
         if (isFilterByFavorites) {
             updatedPosts.removeAt(postIndex)
         }
-        input.accept(Action.PostsUpdated(updatedPosts, isNeedToSyncAfterUpdate = true, isUpdatingFavoritesVisibility = true))
+        input.accept(Action.PostsUpdated(updatedPosts))
 
         processLikeRequest(updatedPosts, likedPost, postIndex)
     }
@@ -120,22 +105,22 @@ class PostsViewModel(private val isFilterByFavorites: Boolean) : BaseRxViewModel
     private fun processLikeRequest(updatedPosts: MutableList<Post>, likedPost: Post, postIndex: Int) {
         RepositoryProvider.postRepository
             .sendLikeRequest(likedPost, likedPost.isLiked)
-            .delay(UPDATING_DELAY_MILLIS, TimeUnit.MILLISECONDS, Schedulers.io(), true)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .doOnSuccess { updatedPost ->
-                logMessage("Success like request of post at position $postIndex")
-                posts = updatedPosts
-                if (updatedPost.likesCount != likedPost.likesCount && !isFilterByFavorites) {
-                    (posts as MutableList<Post>)[postIndex] = updatedPost
-                    input.accept(Action.PostsUpdated(posts, isNeedToSyncAfterUpdate = true))
+            .subscribe(
+                { updatedPost ->
+                    logMessage("Success like request of post at position $postIndex")
+                    posts = updatedPosts
+                    if (updatedPost.likesCount != likedPost.likesCount && !isFilterByFavorites) {
+                        (posts as MutableList<Post>)[postIndex] = updatedPost
+                    }
+                    input.accept(Action.PostsUpdated(posts, isUpdatingFavoritesVisibility = true))
+                },
+                { throwable ->
+                    logError("Fail to like post at $postIndex position", throwable)
+                    updateOnErrorWithDelay(throwable)
                 }
-            }
-            .doOnError { throwable ->
-                logError("Fail to like post at $postIndex position", throwable)
-                input.accept(Action.ErrorUpdatingPosts(error = throwable, posts = posts))
-            }
-            .subscribe()
+            )
             .disposeOnFinish()
     }
 
@@ -145,7 +130,7 @@ class PostsViewModel(private val isFilterByFavorites: Boolean) : BaseRxViewModel
     fun hidePost(postIndex: Int) {
         val updatedPosts = posts.toMutableList()
         updatedPosts.removeAt(postIndex)
-        input.accept(Action.PostsUpdated(updatedPosts, isNeedToSyncAfterUpdate = true, isUpdatingFavoritesVisibility = true))
+        input.accept(Action.PostsUpdated(updatedPosts))
 
         requestToHidePost(postIndex, updatedPosts)
     }
@@ -154,26 +139,36 @@ class PostsViewModel(private val isFilterByFavorites: Boolean) : BaseRxViewModel
         val postToHide: Post = posts[postIndex]
         RepositoryProvider.postRepository
             .hidePost(postToHide)
-            .delay(UPDATING_DELAY_MILLIS, TimeUnit.MILLISECONDS, Schedulers.io(), true)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .doOnSuccess { responseCode ->
-                posts = updatedPosts
-                logMessage("post is hidden, response code: $responseCode")
-            }
-            .doOnError { throwable ->
-                logError("fail to hide post at $postIndex position", throwable)
-                input.accept(Action.ErrorUpdatingPosts(throwable, posts))
-            }
-            .subscribe()
+            .subscribe(
+                { responseCode ->
+                    posts = updatedPosts
+                    logMessage("post is hidden, response code: $responseCode")
+                    input.accept(Action.PostsUpdated(posts, isUpdatingFavoritesVisibility = true))
+                },
+                { throwable ->
+                    logError("fail to hide post at $postIndex position", throwable)
+                    updateOnErrorWithDelay(throwable)
+                }
+            )
             .disposeOnFinish()
+    }
+
+    private fun updateOnErrorWithDelay(throwable: Throwable) {
+        Handler(Looper.getMainLooper()).postDelayed({
+            input.accept(Action.ErrorUpdatingPosts(error = throwable, posts = posts))
+        }, UPDATING_DELAY_MILLIS)
     }
 
     private fun logMessage(message: String) = Log.d(TAG, message)
 
     private fun logError(logErrorMessage: String, throwable: Throwable) = Log.e(TAG, logErrorMessage, throwable)
 
-    class PostsViewModelFactory(private val isFilterByFavorites: Boolean) : ViewModelProvider.NewInstanceFactory() {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T = PostsViewModel(isFilterByFavorites) as T
+    class PostsViewModelFactory(
+        private val isFilterByFavorites: Boolean,
+        private val isFirstLoading: Boolean
+    ) : ViewModelProvider.NewInstanceFactory() {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T = PostsViewModel(isFilterByFavorites, isFirstLoading) as T
     }
 }
