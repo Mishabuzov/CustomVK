@@ -6,23 +6,16 @@ data class State(
     val posts: List<Post> = emptyList(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val isNeedToSync: Boolean = false,
+    val isLocalUpdating: Boolean = false,
     val isUpdatingFavoritesVisibility: Boolean = false,
     val error: Throwable? = null,
 )
-
-private fun State.checkIfSyncIsNeeded(isNeedToSyncAfterUpdate: Boolean, isSyncCompleted: Boolean): Boolean {
-    return when {
-        isSyncCompleted -> false
-        isNeedToSyncAfterUpdate -> true
-        else -> isNeedToSync
-    }
-}
 
 fun State.reduce(action: Action): State = when (action) {
     is Action.LoadPosts -> copy(
         isLoading = action.isLoading,
         isRefreshing = false,
+        isLocalUpdating = false,
         isUpdatingFavoritesVisibility = false,
         error = null,
     )
@@ -30,19 +23,17 @@ fun State.reduce(action: Action): State = when (action) {
         posts = action.posts,
         isLoading = false,
         isRefreshing = action.isRefreshing,
+        isLocalUpdating = true,
         isUpdatingFavoritesVisibility = action.isUpdatingFavoritesVisibility,
-        error = null,
-        isNeedToSync = checkIfSyncIsNeeded(
-            isNeedToSyncAfterUpdate = action.isNeedToSyncAfterUpdate,
-            isSyncCompleted = action.isSyncCompleted
-        ),
+        error = null
     )
     is Action.ErrorUpdatingPosts -> copy(
         posts = action.posts ?: posts,
         isLoading = false,
-        isRefreshing = false,
+        isRefreshing = action.isRefreshing,
+        isLocalUpdating = true,
         isUpdatingFavoritesVisibility = true,
         error = action.error,
     )
-    Action.PostsCleared -> State(isNeedToSync = isNeedToSync)
+    is Action.PostsCleared -> State(posts = posts)
 }
