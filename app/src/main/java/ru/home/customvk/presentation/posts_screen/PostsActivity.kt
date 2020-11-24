@@ -13,16 +13,14 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
 
     companion object {
         private const val CURRENT_SCREEN_TYPE = "screen_type"
-        private const val IS_NEED_TO_SYNC_POSTS = "is_need_to_sync_posts"
         private const val IS_FAVORITES_FRAGMENT_VISIBLE = "is_favorites_fragments_visible"
 
         fun createIntent(context: Context) = Intent(context, PostsActivity::class.java)
     }
 
-    private val postsNewsFragment by lazy(NONE) { PostsFragment.newInstance() }
+    private lateinit var postsNewsFragment: PostsFragment
     private val postsFavoritesFragment by lazy(NONE) { PostsFragment.newInstance(isFavorite = true) }
 
-    private var isNeedToSyncPosts = false
     private var currentScreenItemId: Int = ScreenType.NEWS.screenItemId
     private var isFavoritesFragmentVisible = true
 
@@ -30,17 +28,23 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_news)
         if (savedInstanceState == null) {
+            initPostsNewsFragments(isFirstLoading = true)
             replaceCurrentFragment(postsNewsFragment)
         } else {
+            initPostsNewsFragments()
             currentScreenItemId = savedInstanceState.getInt(CURRENT_SCREEN_TYPE)
-            isNeedToSyncPosts = savedInstanceState.getBoolean(IS_NEED_TO_SYNC_POSTS)
             val isFavoritesFragmentVisible = savedInstanceState.getBoolean(IS_FAVORITES_FRAGMENT_VISIBLE)
             updateFavoritesVisibility(isFavoritesFragmentVisible)
+            replaceCurrentFragment(getFragmentByScreenId())
         }
         bottom_navigation.setOnNavigationItemSelectedListener {
             switchScreenIfNeeded(it.itemId)
             true
         }
+    }
+
+    private fun initPostsNewsFragments(isFirstLoading: Boolean = false) {
+        postsNewsFragment = PostsFragment.newInstance(isFirstLoading = isFirstLoading)
     }
 
     /**
@@ -75,10 +79,11 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
         }
     }
 
-    private fun replaceCurrentFragment(fragment: Fragment) =
+    private fun replaceCurrentFragment(fragment: Fragment) {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .commit()
+    }
 
     override fun updateFavoritesVisibility(isFavoritesFragmentVisible: Boolean) {
         if (isFavoritesFragmentVisible != this.isFavoritesFragmentVisible) {
@@ -92,16 +97,9 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
         }
     }
 
-    override fun isNeedToSyncPosts(): Boolean = isNeedToSyncPosts
-
-    override fun setNeedToSyncPosts(isNeedToSyncPosts: Boolean) {
-        this.isNeedToSyncPosts = isNeedToSyncPosts
-    }
-
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(CURRENT_SCREEN_TYPE, currentScreenItemId)
-        outState.putBoolean(IS_NEED_TO_SYNC_POSTS, isNeedToSyncPosts)
         outState.putBoolean(IS_FAVORITES_FRAGMENT_VISIBLE, isFavoritesFragmentVisible)
     }
 
