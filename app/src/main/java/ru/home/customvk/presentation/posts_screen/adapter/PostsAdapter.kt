@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.END
@@ -25,13 +26,12 @@ class PostAdapter(
         private const val TYPE_IMAGE_POST = 1
     }
 
-//    private val postsDiffer = AsyncListDiffer(this, PostDiffCallback())
+    private val postsDiffer = AsyncListDiffer(this, PostDiffCallback())
 
     var posts: List<Post> = emptyList()
         set(value) {
             field = value
-            notifyDataSetChanged()
-//            postsDiffer.submitList(value)
+            postsDiffer.submitList(value)
         }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextPostHolder {
