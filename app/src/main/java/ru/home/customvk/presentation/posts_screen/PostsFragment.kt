@@ -36,8 +36,8 @@ import ru.home.customvk.presentation.posts_screen.adapter.PostTouchHelperCallbac
 import ru.home.customvk.utils.AttachmentUtils
 import ru.home.customvk.utils.AttachmentUtils.compressBitmap
 import ru.home.customvk.utils.PostUtils.POSTS_IMAGE_PROVIDER_AUTHORITIES
-import ru.home.customvk.utils.PostUtils.areLikedPostPresent
 import ru.home.customvk.utils.PostUtils.createFileToCacheBitmap
+import ru.home.customvk.utils.PreferenceUtils
 import java.io.File
 import java.io.FileOutputStream
 
@@ -89,6 +89,7 @@ class PostsFragment : Fragment() {
         postsViewModel = ViewModelProvider(this, PostsViewModel.PostsViewModelFactory(isFavoritesFragment, isFirstLoading))
             .get(PostsViewModel::class.java)
         postsViewModel.getStateLiveData().observe(viewLifecycleOwner, ::render)
+        postsViewModel.getUiEffectsLiveData().observe(viewLifecycleOwner, ::handleUiEffect)
     }
 
     private fun configureLayout() {
@@ -98,7 +99,6 @@ class PostsFragment : Fragment() {
         postsRecycler.adapter = adapter
         postsRecycler.layoutManager = layoutManager
         postsRecycler.addItemDecoration(createPostsDivider(layoutManager))
-
         ItemTouchHelper(PostTouchHelperCallback(adapter)).attachToRecyclerView(postsRecycler)
 
         postsRefresher.setOnRefreshListener(postsViewModel::refreshPosts)
@@ -107,20 +107,29 @@ class PostsFragment : Fragment() {
     private fun render(state: State) {
         loading.isVisible = state.isLoading
 
-        if (state.isLocalUpdating) {
+        if (state.isUpdatingPosts) {
             adapter.posts = state.posts
         }
 
         state.error?.let { showQueryErrorDialog() }
+    }
 
-        if (state.isUpdatingFavoritesVisibility) {
-            postsFragmentInterractor?.updateFavoritesVisibility(state.posts.areLikedPostPresent())
+    private fun handleUiEffect(uiEffect: UiEffect) {
+        when (uiEffect) {
+            is UiEffect.ScrollRecyclerToSavedPosition -> scrollRecyclerToSavedPosition()
+            is UiEffect.UpdateFavoritesVisibility -> postsFragmentInterractor?.updateFavoritesVisibility(uiEffect.areLikedPostsPresent)
+            is UiEffect.FinishRefreshing -> onFinishRefreshing()
         }
+    }
 
-        if (state.isRefreshing) {
-            postsRefresher.isRefreshing = false
-            postsRecycler.post { layoutManager.scrollToPosition(0) }
-        }
+    private fun onFinishRefreshing() {
+        postsRefresher.isRefreshing = false
+        postsRecycler.post { postsRecycler.scrollToPosition(0) }
+    }
+
+    private fun scrollRecyclerToSavedPosition() {
+        val scrolledPosition = PreferenceUtils.getRecyclerPosition(isFavoritesFragment)
+        postsRecycler.scrollToPosition(scrolledPosition)
     }
 
     /**
@@ -258,6 +267,15 @@ class PostsFragment : Fragment() {
             paint.color = Color.DKGRAY
         })
         return divider
+    }
+
+    private fun saveRecyclerPosition() {
+        PreferenceUtils.saveRecyclerPosition(layoutManager.findFirstVisibleItemPosition(), isFavoritesFragment)
+    }
+
+    override fun onStop() {
+        saveRecyclerPosition()
+        super.onStop()
     }
 
     interface PostsFragmentInterractor {

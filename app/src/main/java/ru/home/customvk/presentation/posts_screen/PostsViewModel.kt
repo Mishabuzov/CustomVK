@@ -18,6 +18,7 @@ import io.reactivex.schedulers.Schedulers
 import ru.home.customvk.data.RepositoryProvider
 import ru.home.customvk.domain.Post
 import ru.home.customvk.presentation.BaseRxViewModel
+import ru.home.customvk.utils.PostUtils.areLikedPostsPresent
 import ru.home.customvk.utils.PostUtils.likePostAtPosition
 
 private typealias PostSideEffect = SideEffect<State, out Action>
@@ -28,7 +29,7 @@ class PostsViewModel(private val isFilterByFavorites: Boolean, private val isFir
         private const val TAG = "POSTS_VIEW_MODEL"
 
         // small delay to prevent flickering visual effects and recycler's inconsistency states.
-        private const val UPDATING_DELAY_MILLIS = 200L
+        private const val UPDATING_DELAY_MILLIS = 300L
     }
 
     private val inputRelay: Relay<Action> = PublishRelay.create()
@@ -42,29 +43,32 @@ class PostsViewModel(private val isFilterByFavorites: Boolean, private val isFir
     private val currentState: MutableLiveData<State> = MutableLiveData()
     fun getStateLiveData() = currentState as LiveData<State>
 
+    private val uiEffectsRelay = PublishRelay.create<UiEffect>()
+    private val uiEffectsInput: Consumer<UiEffect> get() = uiEffectsRelay
+    private val uiEffectsState: Observable<UiEffect> get() = uiEffectsRelay
+
+    private val currentUiEffects: MutableLiveData<UiEffect> = MutableLiveData()
+    fun getUiEffectsLiveData() = currentUiEffects as LiveData<UiEffect>
+
     private var posts: List<Post> = emptyList()
 
     fun onAttachViewModel() {
-        state.subscribe { currentState.value = it }
+        state.observeOn(AndroidSchedulers.mainThread())
+            .subscribe { currentState.value = it }
+            .disposeOnFinish()
+        uiEffectsState.observeOn(AndroidSchedulers.mainThread())
+            .subscribe { currentUiEffects.value = it }
             .disposeOnFinish()
 
-        input.accept(Action.LoadPosts())  // show cached posts firstly.
+        input.accept(Action.LoadPosts(isNeedToScrollRecyclerToSavedPosition = true))  // show cached posts firstly.
         if (!isFilterByFavorites && isFirstLoading) {
             refreshPosts()  // silent update from network on 1st loading.
         }
     }
 
-    fun setNeutralState() = input.accept(Action.PostsCleared)
+    fun setNeutralState() = input.accept(Action.ChangeFragment)
 
-    fun refreshPosts() {
-        input.accept(
-            Action.LoadPosts(
-                isLoading = false,
-                isRefreshing = true,
-                isUpdatingFavoritesVisibility = true
-            )
-        )
-    }
+    fun refreshPosts() = input.accept(Action.LoadPosts(isLoading = false, isRefreshing = true))
 
     private fun loadPosts(): PostSideEffect {
         return { actions, _ ->
@@ -77,14 +81,27 @@ class PostsViewModel(private val isFilterByFavorites: Boolean, private val isFir
                         .observeOn(AndroidSchedulers.mainThread())
                         .map {
                             posts = it
-                            Action.PostsUpdated(
-                                posts = posts,
-                                isUpdatingFavoritesVisibility = loadingAction.isUpdatingFavoritesVisibility,
-                                isRefreshing = loadingAction.isRefreshing
-                            ) as Action
+                            activateOnSuccessLoadingUiEffects(
+                                isRefreshing = loadingAction.isRefreshing,
+                                isNeedToScrollRecyclerToSavedPosition = loadingAction.isNeedToScrollRecyclerToSavedPosition
+                            )
+                            Action.PostsUpdated(posts = posts) as Action
                         }
-                        .onErrorReturn { error -> Action.ErrorUpdatingPosts(error = error, isRefreshing = true) }
+                        .onErrorReturn { error ->
+                            activateOnSuccessLoadingUiEffects(isRefreshing = loadingAction.isRefreshing)
+                            Action.ErrorUpdatingPosts(error = error)
+                        }
                 }
+        }
+    }
+
+    private fun activateOnSuccessLoadingUiEffects(isRefreshing: Boolean, isNeedToScrollRecyclerToSavedPosition: Boolean = false) {
+        if (isRefreshing) {
+            uiEffectsInput.accept(UiEffect.FinishRefreshing)
+        }
+        updateFavoritesVisibility()
+        if (isNeedToScrollRecyclerToSavedPosition) {
+            uiEffectsInput.accept(UiEffect.ScrollRecyclerToSavedPosition)
         }
     }
 
@@ -114,7 +131,8 @@ class PostsViewModel(private val isFilterByFavorites: Boolean, private val isFir
                     if (updatedPost.likesCount != likedPost.likesCount && !isFilterByFavorites) {
                         (posts as MutableList<Post>)[postIndex] = updatedPost
                     }
-                    input.accept(Action.PostsUpdated(posts, isUpdatingFavoritesVisibility = true))
+                    input.accept(Action.PostsUpdated(posts))
+                    updateFavoritesVisibility()
                 },
                 { throwable ->
                     logError("Fail to like post at $postIndex position", throwable)
@@ -123,6 +141,8 @@ class PostsViewModel(private val isFilterByFavorites: Boolean, private val isFir
             )
             .disposeOnFinish()
     }
+
+    private fun updateFavoritesVisibility() = uiEffectsInput.accept(UiEffect.UpdateFavoritesVisibility(posts.areLikedPostsPresent()))
 
     /**
      * process hiding of post by swiping from right to left in the newsfeed.
@@ -145,7 +165,8 @@ class PostsViewModel(private val isFilterByFavorites: Boolean, private val isFir
                 { responseCode ->
                     posts = updatedPosts
                     logMessage("post is hidden, response code: $responseCode")
-                    input.accept(Action.PostsUpdated(posts, isUpdatingFavoritesVisibility = true))
+                    input.accept(Action.PostsUpdated(posts))
+                    updateFavoritesVisibility()
                 },
                 { throwable ->
                     logError("fail to hide post at $postIndex position", throwable)
@@ -158,6 +179,7 @@ class PostsViewModel(private val isFilterByFavorites: Boolean, private val isFir
     private fun updateOnErrorWithDelay(throwable: Throwable) {
         Handler(Looper.getMainLooper()).postDelayed({
             input.accept(Action.ErrorUpdatingPosts(error = throwable, posts = posts))
+            updateFavoritesVisibility()
         }, UPDATING_DELAY_MILLIS)
     }
 
