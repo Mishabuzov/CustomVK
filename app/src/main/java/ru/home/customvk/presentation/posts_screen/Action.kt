@@ -6,20 +6,15 @@ sealed class Action {
     data class LoadPosts(
         val isLoading: Boolean = true,
         val isRefreshing: Boolean = false,
-        val isUpdatingFavoritesVisibility: Boolean = false
+        val isNeedToScrollRecyclerToSavedPosition: Boolean = false,
     ) : Action()
 
-    data class PostsUpdated(
-        val posts: List<Post>,
-        val isRefreshing: Boolean = false,
-        val isUpdatingFavoritesVisibility: Boolean = false
-    ) : Action()
+    data class PostsUpdated(val posts: List<Post>) : Action()
 
     data class ErrorUpdatingPosts(
         val error: Throwable,
-        val isRefreshing: Boolean = false,
         val posts: List<Post>? = null
     ) : Action()
 
-    object PostsCleared : Action()
+    object ChangeFragment : Action()
 }
