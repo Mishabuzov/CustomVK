@@ -19,7 +19,7 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val accessToken = PreferenceUtils.getToken(this)
+        val accessToken = PreferenceUtils.getToken()
         if (accessToken.isNullOrEmpty()) {
             VK.login(this, arrayListOf(VKScope.WALL, VKScope.FRIENDS, VKScope.OFFLINE))
         } else {
@@ -31,7 +31,7 @@ class LoginActivity : AppCompatActivity() {
     private val tokenTracker = object : VKTokenExpiredHandler {
         override fun onTokenExpired() {
             restartActivity()
-            PreferenceUtils.removeToken(this@LoginActivity)
+            PreferenceUtils.removeToken()
             showNotificationDialog(R.string.token_expired_message)
         }
     }
@@ -40,38 +40,35 @@ class LoginActivity : AppCompatActivity() {
 
     fun onSuccessfulLogin(accessToken: String) {
         ApiFactory.accessToken = accessToken
-        startActivity(
-            PostsActivity.createIntent(this@LoginActivity).addClearingStackFlags()
-        )
+        startActivity(PostsActivity.createIntent(this@LoginActivity).addClearingStackFlags())
     }
 
-    private fun restartActivity() = startActivity(
-        Intent(this, LoginActivity::class.java).addClearingStackFlags()
-    )
+    private fun restartActivity() = startActivity(Intent(this, LoginActivity::class.java).addClearingStackFlags())
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         val callback = object : VKAuthCallback {
             override fun onLogin(token: VKAccessToken) {
-                PreferenceUtils.saveToken(this@LoginActivity, token.accessToken)
+                PreferenceUtils.saveToken(token.accessToken)
                 onSuccessfulLogin(token.accessToken)
             }
 
-            override fun onLoginFailed(errorCode: Int) =
-                showNotificationDialog(R.string.authorization_failing_dialog_message)
+            override fun onLoginFailed(errorCode: Int) = showNotificationDialog(R.string.authorization_failing_dialog_message)
         }
         if (data == null || !VK.onActivityResult(requestCode, resultCode, data, callback)) {
             super.onActivityResult(requestCode, resultCode, data)
         }
     }
 
-    private fun showNotificationDialog(@StringRes messageRes: Int) = AlertDialog.Builder(this, R.style.AlertDialogStyle)
-        .setTitle(R.string.authorization_failing_dialog_title)
-        .setMessage(messageRes)
-        .setPositiveButton(getString(android.R.string.ok)) { dialog, _ ->
-            dialog.cancel()
-            restartActivity()
-        }
-        .setOnDismissListener { restartActivity() }
-        .create()
-        .show()
+    private fun showNotificationDialog(@StringRes messageRes: Int) {
+        AlertDialog.Builder(this, R.style.AlertDialogStyle)
+            .setTitle(R.string.authorization_failing_dialog_title)
+            .setMessage(messageRes)
+            .setPositiveButton(getString(android.R.string.ok)) { dialog, _ ->
+                dialog.cancel()
+                restartActivity()
+            }
+            .setOnDismissListener { restartActivity() }
+            .create()
+            .show()
+    }
 }

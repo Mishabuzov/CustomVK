@@ -22,7 +22,7 @@ object PostUtils {
 
     fun List<Post>.filterByFavorites() = filter { it.isLiked }
 
-    fun List<Post>.areLikedPostPresent(): Boolean = filterByFavorites().count() > 0
+    fun List<Post>.areLikedPostsPresent(): Boolean = filterByFavorites().count() > 0
 
     fun createFileToCacheBitmap(bitmapFullName: String, dirToSave: File): File {
         val fullPathToSave = File(dirToSave, CACHED_IMAGES_PATH_FOR_SHARING)
