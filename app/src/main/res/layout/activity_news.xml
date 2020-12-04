@@ -18,7 +18,8 @@
         android:layout_width="match_parent"
         android:layout_height="@dimen/bottom_navigation_height"
         android:background="@android:color/black"
-        app:itemIconTint="@drawable/bottom_nav_icon_color_selector"
+        app:itemIconTint="@drawable/bottom_nav_item_color_state"
+        app:itemTextColor="@drawable/bottom_nav_item_color_state"
         app:layout_constraintBottom_toBottomOf="parent"
         app:menu="@menu/post_bottom_menu" />
 
