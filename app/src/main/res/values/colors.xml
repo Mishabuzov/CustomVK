@@ -1,20 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#1B7EF6</color>
-    <color name="colorPrimaryDark">#CC1B4AF6</color>
-    <color name="colorAccent">#559FF8</color>
+    <color name="colorPrimary">#2B2A2A</color>
+    <color name="colorPrimaryDark">#272626</color>
+    <color name="colorAccent">#ECF0F1</color>
 
-    <color name="titleTextColor">#CDCCCC</color>
     <color name="textColorPrimary">#E4E4E4</color>
     <color name="textColorSecondary">#B6B6B6</color>
-    <color name="textColorShadowed">#787575</color>
-
-    <color name="inactiveActionButtonColor">#B6B6B6</color>
 
     <color name="windowBackground">#3A3838</color>
 
     <color name="alertDialogTextColor">#343434</color>
 
+    <!-- post -->
+    <color name="postTitleTextColor">#CDCCCC</color>
+    <color name="postShadowedTextColor">#787575</color>
+
+    <!-- bottom share dialog -->
     <color name="bottomDialogTextColor">#3A3838</color>
     <color name="bottomDialogBackground">#E4E4E4</color>
+
+    <!-- auth screen -->
+    <color name="auth_background_title_text_color">#ECF0F1</color>
+    <color name="auth_login_button_background_color">#ECF0F1</color>
+    <color name="auth_login_button_text_color">#3A3838</color>
 </resources>
