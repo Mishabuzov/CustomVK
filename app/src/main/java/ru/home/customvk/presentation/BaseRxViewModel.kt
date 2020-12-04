@@ -1,10 +1,11 @@
 package ru.home.customvk.presentation
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 
-abstract class BaseRxViewModel : ViewModel() {
+abstract class BaseRxViewModel(application: Application) : AndroidViewModel(application) {
 
     private val disposables = CompositeDisposable()
 
