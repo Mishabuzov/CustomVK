@@ -11,10 +11,5 @@ sealed class Action {
 
     data class PostsUpdated(val posts: List<Post>) : Action()
 
-    data class ErrorUpdatingPosts(
-        val error: Throwable,
-        val posts: List<Post>? = null
-    ) : Action()
-
-    object ChangeFragment : Action()
+    data class ErrorUpdatingPosts(val posts: List<Post>? = null) : Action()
 }
