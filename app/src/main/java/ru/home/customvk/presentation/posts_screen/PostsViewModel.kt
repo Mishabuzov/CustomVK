@@ -20,6 +20,7 @@ import ru.home.customvk.domain.Post
 import ru.home.customvk.presentation.BaseRxViewModel
 import ru.home.customvk.utils.PostUtils.areLikedPostsPresent
 import ru.home.customvk.utils.PostUtils.likePostAtPosition
+import ru.home.customvk.utils.PreferencesUtils
 import ru.home.customvk.utils.SingleLiveEvent
 import javax.inject.Inject
 import kotlin.properties.Delegates
@@ -30,6 +31,9 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
 
     @Inject
     lateinit var postRepository: PostRepository
+
+    @Inject
+    lateinit var preferencesUtils: PreferencesUtils
 
     private companion object {
         private const val TAG = "POSTS_VIEW_MODEL"
@@ -42,7 +46,7 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
     private val input: Consumer<Action> get() = inputRelay
     private var state: Observable<State> = inputRelay.reduxStore(
         initialState = State(),
-        sideEffects = listOf(loadPosts()),
+        sideEffects = listOf(loadPosts(), updatePostsWithScrolling()),
         reducer = { state, action -> state.reduce(action) }
     )
     private val currentState: MutableLiveData<State> = MutableLiveData()
@@ -55,16 +59,14 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
     fun getUiEffectsLiveData() = currentUiEffects as LiveData<UiEffect>
 
     private var posts: List<Post> = emptyList()
-    private var isFilterByFavorites by Delegates.notNull<Boolean>()
-    private var isFirstLoading by Delegates.notNull<Boolean>()
+    private var isAttachedToFavoritesFragment by Delegates.notNull<Boolean>()
 
     init {
         (application as VkApplication).appComponent.postsViewModelSubComponentBuilder().build().inject(this)
     }
 
     fun onAttachViewModel(isFilterByFavorites: Boolean, isFirstLoading: Boolean) {
-        this.isFilterByFavorites = isFilterByFavorites
-        this.isFirstLoading = isFirstLoading
+        this.isAttachedToFavoritesFragment = isFilterByFavorites
 
         state.observeOn(AndroidSchedulers.mainThread())
             .subscribe { currentState.value = it }
@@ -73,34 +75,46 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
             .subscribe { currentUiEffects.value = it }
             .disposeOnFinish()
 
-        input.accept(Action.LoadPosts(isNeedToScrollRecyclerToSavedPosition = !isFirstLoading))  // show cached posts firstly.
+        input.accept(Action.LoadPosts(isFirstLoading = isFirstLoading))  // show cached posts firstly.
         if (!isFilterByFavorites && isFirstLoading) {
-            refreshPosts()  // silent update from network on 1st loading.
+            // silent update from network on 1st loading. Delay is added to prevent inconsistency of update in the recycler.
+            Handler(Looper.getMainLooper()).postDelayed({ refreshPosts(true) }, UPDATING_DELAY_MILLIS)
         }
     }
 
-    fun refreshPosts() = input.accept(Action.LoadPosts(isLoading = false, isRefreshing = true))
+    fun refreshPosts(showLoadingState: Boolean = false) = input.accept(Action.LoadPosts(isLoading = showLoadingState, isRefreshing = true))
 
     private fun loadPosts(): PostSideEffect {
         return { actions, _ ->
             actions.ofType(Action.LoadPosts::class.java)
                 .flatMap { loadingAction ->
-                    postRepository.fetchPosts(forceUpdate = loadingAction.isRefreshing, isFilterByFavorites = isFilterByFavorites)
+                    postRepository.fetchPosts(forceUpdate = loadingAction.isRefreshing, isFilterByFavorites = isAttachedToFavoritesFragment)
                         .subscribeOn(Schedulers.io())
                         .toObservable()
                         .observeOn(AndroidSchedulers.mainThread())
                         .map {
                             val werePostsBeforeUpdate = posts.isNotEmpty()  // if were not posts -> no need to scroll up on update
                             posts = it
-                            activateOnFinishLoadingUiEffects(
-                                isRefreshing = loadingAction.isRefreshing,
-                                isNeedToScrollUpOnUpdate = loadingAction.isRefreshing && posts.size > 1 && werePostsBeforeUpdate,
-                                isNeedToScrollToSavedPosition = loadingAction.isNeedToScrollRecyclerToSavedPosition
-                            )
-                            Action.PostsUpdated(posts = posts) as Action
+                            activateOnFinishLoadingUiEffects(loadingAction.isRefreshing)
+                            val isScrollingToFirstPosition = loadingAction.isRefreshing && posts.size > 1 && werePostsBeforeUpdate
+                            val isScrollingToSavedPosition = !loadingAction.isRefreshing && !loadingAction.isFirstLoading
+                            if (isScrollingToFirstPosition || isScrollingToSavedPosition) {
+                                Action.PostsUpdatedWithScrolling(
+                                    posts = posts,
+                                    isScrollingToFirstPosition = isScrollingToFirstPosition,
+                                    isScrollingToSavedPosition = isScrollingToSavedPosition,
+                                    isFavoritesFragment = isAttachedToFavoritesFragment
+                                )
+                            } else {
+                                Action.PostsUpdated(
+                                    posts = posts,
+                                    isFavoritesFragment = isAttachedToFavoritesFragment,
+                                    isFirstLoading = loadingAction.isFirstLoading
+                                )
+                            }
                         }
                         .onErrorReturn { error ->
-                            activateOnFinishLoadingUiEffects(isRefreshing = loadingAction.isRefreshing)
+                            activateOnFinishLoadingUiEffects(loadingAction.isRefreshing)
                             logError("Error updating posts, force update = ${loadingAction.isRefreshing}", error)
                             uiEffectsInput.accept(UiEffect.ErrorUpdatingPosts)
                             Action.ErrorUpdatingPosts()
@@ -109,17 +123,29 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
         }
     }
 
-    private fun activateOnFinishLoadingUiEffects(
-        isRefreshing: Boolean,
-        isNeedToScrollUpOnUpdate: Boolean = false,
-        isNeedToScrollToSavedPosition: Boolean = false
-    ) {
+    private fun updatePostsWithScrolling(): PostSideEffect {
+        return { actions, _ ->
+            actions.ofType(Action.PostsUpdatedWithScrolling::class.java)
+                .flatMap { updatingAction ->
+                    Observable.fromCallable {
+                        when {
+                            updatingAction.isScrollingToFirstPosition -> uiEffectsInput.accept(UiEffect.ScrollRecyclerToPosition(0))
+                            updatingAction.isScrollingToSavedPosition -> {
+                                uiEffectsInput.accept(
+                                    UiEffect.ScrollRecyclerToPosition(preferencesUtils.getRecyclerPosition(isAttachedToFavoritesFragment))
+                                )
+                            }
+                        }
+                        Action.PostsUpdated(posts = posts, isFavoritesFragment = isAttachedToFavoritesFragment)
+                    }
+                }
+        }
+    }
+
+    private fun activateOnFinishLoadingUiEffects(isRefreshing: Boolean) {
         updateFavoritesVisibility()
         if (isRefreshing) {
-            uiEffectsInput.accept(UiEffect.FinishRefreshing(isNeedToScrollUpOnUpdate = isNeedToScrollUpOnUpdate))
-        }
-        if (isNeedToScrollToSavedPosition) {
-            uiEffectsInput.accept(UiEffect.ScrollRecyclerToSavedPosition)
+            uiEffectsInput.accept(UiEffect.FinishRefreshing)
         }
     }
 
@@ -131,10 +157,10 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
     fun processLike(postIndex: Int) {
         val updatedPosts = posts.toMutableList()
         val likedPost = updatedPosts.likePostAtPosition(postIndex)
-        if (isFilterByFavorites) {
+        if (isAttachedToFavoritesFragment) {
             updatedPosts.removeAt(postIndex)
         }
-        input.accept(Action.PostsUpdated(updatedPosts))
+        input.accept(Action.PostsUpdated(posts = updatedPosts, isFavoritesFragment = isAttachedToFavoritesFragment))
 
         processLikeRequest(updatedPosts, likedPost, postIndex)
     }
@@ -147,10 +173,10 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
                 { updatedPost ->
                     logMessage("Success like request of post at position $postIndex")
                     posts = updatedPosts
-                    if (updatedPost.likesCount != likedPost.likesCount && !isFilterByFavorites) {
+                    if (updatedPost.likesCount != likedPost.likesCount && !isAttachedToFavoritesFragment) {
                         (posts as MutableList<Post>)[postIndex] = updatedPost
                     }
-                    input.accept(Action.PostsUpdated(posts))
+                    input.accept(Action.PostsUpdated(posts = posts, isFavoritesFragment = isAttachedToFavoritesFragment))
                     updateFavoritesVisibility()
                 },
                 { throwable ->
@@ -167,7 +193,7 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
     fun hidePost(postIndex: Int) {
         val updatedPosts = posts.toMutableList()
         updatedPosts.removeAt(postIndex)
-        input.accept(Action.PostsUpdated(updatedPosts))
+        input.accept(Action.PostsUpdated(posts = updatedPosts, isFavoritesFragment = isAttachedToFavoritesFragment))
 
         requestToHidePost(postIndex, updatedPosts)
     }
@@ -181,7 +207,7 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
                 { responseCode ->
                     posts = updatedPosts
                     logMessage("post is hidden, response code: $responseCode")
-                    input.accept(Action.PostsUpdated(posts))
+                    input.accept(Action.PostsUpdated(posts = posts, isFavoritesFragment = isAttachedToFavoritesFragment))
                     updateFavoritesVisibility()
                 },
                 { throwable ->
