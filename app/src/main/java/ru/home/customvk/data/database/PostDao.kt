@@ -22,6 +22,13 @@ interface PostDao {
     @Query("DELETE FROM post")
     fun deleteAllPosts()
 
+    @Transaction
+    fun replaceAllPosts(newPosts: List<Post>): List<Post> {
+        deleteAllPosts()
+        savePosts(newPosts)
+        return newPosts
+    }
+
     @Delete
     fun deletePost(post: Post)
 

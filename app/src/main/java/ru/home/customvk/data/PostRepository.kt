@@ -1,29 +1,23 @@
 package ru.home.customvk.data
 
 import io.reactivex.Single
-import ru.home.customvk.VkApplication
-import ru.home.customvk.data.api.ApiFactory.postApi
+import ru.home.customvk.data.api.PostApi
 import ru.home.customvk.data.database.PostDao
 import ru.home.customvk.domain.Post
 import ru.home.customvk.utils.PostUtils.filterByFavorites
 import ru.home.customvk.utils.PostUtils.toPosts
 
-object RepositoryProvider {
-    val postRepository: PostRepository = DefaultPostRepository()
-}
+class DefaultPostRepository(private val postDao: PostDao, private val postApi: PostApi) : PostRepository {
 
-private class DefaultPostRepository : PostRepository {
-
-    private val postDao: PostDao = VkApplication.instance.database.postDao()
-
-    private fun Single<List<Post>>.filterFavoritePostsIfNeeded(isFilterByFavorites: Boolean) =
-        map { posts ->
+    private fun Single<List<Post>>.filterFavoritePostsIfNeeded(isFilterByFavorites: Boolean): Single<List<Post>> {
+        return map { posts ->
             if (isFilterByFavorites) {
                 posts.filterByFavorites()
             } else {
                 posts
             }
         }
+    }
 
     override fun fetchPosts(forceUpdate: Boolean, isFilterByFavorites: Boolean): Single<List<Post>> {
         return if (forceUpdate) {
@@ -43,15 +37,9 @@ private class DefaultPostRepository : PostRepository {
 
     private fun fetchPostsFromInternet(isFilterByFavorites: Boolean): Single<List<Post>> {
         return postApi.fetchNewsfeedWithPosts().map { response ->
-            val posts = response.newsfeed.toPosts()
-            if (posts.isNotEmpty()) {
-                postDao.deleteAllPosts()
-                postDao.savePosts(posts)
-            }
-            posts
+            postDao.replaceAllPosts(response.newsfeed.toPosts())
         }.filterFavoritePostsIfNeeded(isFilterByFavorites)
     }
-
 
     override fun sendLikeRequest(post: Post, isPositiveLikeRequest: Boolean): Single<Post> =
         if (isPositiveLikeRequest) {
