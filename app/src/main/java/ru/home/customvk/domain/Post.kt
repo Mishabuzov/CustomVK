@@ -22,7 +22,7 @@ data class Post(
     val readablePublicationDate: String,
 
     @ColumnInfo(name = "text")
-    var text: String,
+    val text: String,
 
     @ColumnInfo(name = "picture_url")
     val pictureUrl: String,
