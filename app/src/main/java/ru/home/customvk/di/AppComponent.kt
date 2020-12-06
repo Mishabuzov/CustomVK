@@ -3,9 +3,10 @@ package ru.home.customvk.di
 import android.app.Application
 import dagger.BindsInstance
 import dagger.Component
+import ru.home.customvk.di.login.LoginActivitySubComponent
+import ru.home.customvk.di.login.LoginViewModelSubComponent
 import ru.home.customvk.di.posts.PostsFragmentSubComponent
 import ru.home.customvk.di.posts.PostsViewModelSubComponent
-import ru.home.customvk.presentation.LoginActivity
 import javax.inject.Singleton
 
 @Component(modules = [AppModule::class])
@@ -22,5 +23,7 @@ interface AppComponent {
     fun postsViewModelSubComponentBuilder(): PostsViewModelSubComponent.Builder
     fun postsFragmentSubComponentBuilder(): PostsFragmentSubComponent.Builder
 
-    fun inject(loginActivity: LoginActivity)
+    fun loginViewModelSubComponentBuilder(): LoginViewModelSubComponent.Builder
+    fun loginActivitySubComponentBuilder(): LoginActivitySubComponent.Builder
+
 }

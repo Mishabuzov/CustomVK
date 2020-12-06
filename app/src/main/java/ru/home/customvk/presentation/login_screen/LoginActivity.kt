@@ -1,4 +1,4 @@
-package ru.home.customvk.presentation
+package ru.home.customvk.presentation.login_screen
 
 import android.content.Intent
 import android.os.Bundle
@@ -12,46 +12,46 @@ import kotlinx.android.synthetic.main.activity_login.*
 import ru.home.customvk.R
 import ru.home.customvk.VkApplication
 import ru.home.customvk.presentation.posts_screen.PostsActivity
-import ru.home.customvk.utils.PreferencesUtils
 import javax.inject.Inject
 
 class LoginActivity : AppCompatActivity() {
 
     @Inject
-    lateinit var preferencesUtils: PreferencesUtils
+    lateinit var loginViewModel: LoginViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
-        (applicationContext as VkApplication).appComponent.inject(this)
-
-        val accessToken = preferencesUtils.getToken()
-        if (accessToken.isNullOrEmpty()) {  // VKScope.OFFLINE grants endless token, just check if it was already got
-            startLogin()
-        } else {
-            onSuccessfulLogin(accessToken)
-        }
+        (application as VkApplication).appComponent.loginActivitySubComponentBuilder().with(this).build().inject(this)
 
         loginButton.setOnClickListener {
             startLogin()
             loginButton.isEnabled = false
         }
+        loginViewModel.getStateLiveData().observe(this, ::render)
+        loginViewModel.loginByToken()
     }
 
-    private fun startLogin() = VK.login(this, arrayListOf(VKScope.WALL, VKScope.FRIENDS, VKScope.OFFLINE))
+    private fun render(state: State) {
+        when {
+            state.isStartedLoginState -> startLogin()
+            state.isSuccessfulLoginState -> onSuccessfulLogin()
+        }
+    }
 
-    private fun onSuccessfulLogin(accessToken: String) {
-        preferencesUtils.accessToken = accessToken
+    private fun startLogin() =
+        VK.login(this, arrayListOf(VKScope.WALL, VKScope.FRIENDS, VKScope.OFFLINE))
+
+    private fun onSuccessfulLogin() =
         startActivity(PostsActivity.createIntent(this).addClearingStackFlags())
-    }
 
     private fun Intent.addClearingStackFlags() = addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         val callback = object : VKAuthCallback {
             override fun onLogin(token: VKAccessToken) {
-                preferencesUtils.saveToken(token.accessToken)
-                onSuccessfulLogin(token.accessToken)
+                loginViewModel.saveToken(token.accessToken)
+                onSuccessfulLogin()
             }
 
             /**
@@ -69,4 +69,5 @@ class LoginActivity : AppCompatActivity() {
         loginButton.isVisible = true
         loginButton.isEnabled = true
     }
+
 }
