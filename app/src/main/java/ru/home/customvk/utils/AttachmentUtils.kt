@@ -9,7 +9,7 @@ import java.io.OutputStream
 object AttachmentUtils {
 
     private const val TIME_FORMAT_FOR_IMAGE_NAME = "yyyy-MM-dd_HH_mm_ss"
-    private const val POSTS_MIN_IMAGE_SIZE = 250
+    private const val POSTS_MIN_IMAGE_SIZE = 300
     private const val PHOTO_ATTACHMENT_TYPE = "photo"
 
     fun generateFullImageName(imageUrl: String): String {
