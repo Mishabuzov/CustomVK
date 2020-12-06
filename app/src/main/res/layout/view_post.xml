@@ -22,7 +22,7 @@
         android:layout_marginTop="@dimen/post_header_text_margin_top"
         android:layout_marginEnd="@dimen/post_border_margin"
         android:maxLines="1"
-        android:textColor="@color/titleTextColor"
+        android:textColor="@color/postTitleTextColor"
         android:textSize="@dimen/post_group_name_text"
         android:textStyle="bold"
         tools:text="dev/null" />
@@ -58,6 +58,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
         android:maxHeight="@dimen/post_image_max_height"
         android:minHeight="@dimen/post_image_min_height"
         tools:src="@drawable/ic_eye" />
@@ -94,7 +95,7 @@
         android:layout_marginEnd="@dimen/post_border_margin"
         android:drawablePadding="@dimen/post_action_buttons_drawable_padding"
         android:gravity="center"
-        android:textColor="@color/textColorShadowed"
+        android:textColor="@color/postShadowedTextColor"
         app:drawableStartCompat="@drawable/ic_eye"
         tools:text="10.4K" />
 
