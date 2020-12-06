@@ -8,27 +8,38 @@ class PostNetworkModel(
     @SerializedName("source_id")
     val sourceId: Long,
 
+    @SerializedName("date")
     val date: Long,
 
     @SerializedName("post_id")
     val postId: Long,
 
+    @SerializedName("text")
     val text: String,
 
+    @SerializedName("attachments")
     val attachments: List<Attachment>?,
 
+    @SerializedName("comments")
     val comments: CommentsNetworkModel,
 
+    @SerializedName("likes")
     val likes: LikesNetworkModel,
 
+    @SerializedName("reposts")
     val reposts: RepostsNetworkModel,
 
+    @SerializedName("views")
     val views: ViewingsNetworkModel?
 )
 
-class CommentsNetworkModel(val count: Int)
+class CommentsNetworkModel(
+    @SerializedName("count")
+    val count: Int
+)
 
 class LikesNetworkModel(
+    @SerializedName("count")
     val count: Int,
 
     // 1 - positive, 0 - negative
@@ -36,6 +47,12 @@ class LikesNetworkModel(
     val isLiked: Int,
 )
 
-class RepostsNetworkModel(val count: Int)
+class RepostsNetworkModel(
+    @SerializedName("count")
+    val count: Int
+)
 
-class ViewingsNetworkModel(val count: Int)
+class ViewingsNetworkModel(
+    @SerializedName("count")
+    val count: Int
+)

@@ -3,6 +3,7 @@ package ru.home.customvk.data.api.network_entities
 import com.google.gson.annotations.SerializedName
 
 class UserNetworkModel(
+    @SerializedName("id")
     val id: Long,
 
     @SerializedName("first_name")
@@ -12,5 +13,5 @@ class UserNetworkModel(
     val lastName: String,
 
     @SerializedName("photo_50")
-    val iconUrl: String?
+    val iconUrl: String
 )

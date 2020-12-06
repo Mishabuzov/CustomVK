@@ -11,5 +11,6 @@ class NewsfeedObject(
     @SerializedName("profiles")
     val users: List<UserNetworkModel>,
 
+    @SerializedName("groups")
     val groups: List<GroupNetworkModel>
 )
