@@ -24,48 +24,55 @@ import androidx.core.content.ContextCompat.checkSelfPermission
 import androidx.core.content.FileProvider
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import kotlinx.android.synthetic.main.news_fragment.*
+import kotlinx.android.synthetic.main.fragment_posts.*
 import ru.home.customvk.R
-import ru.home.customvk.presentation.posts_screen.adapter.PostAdapter
+import ru.home.customvk.VkApplication
 import ru.home.customvk.presentation.posts_screen.adapter.PostTouchHelperCallback
+import ru.home.customvk.presentation.posts_screen.adapter.PostsAdapter
 import ru.home.customvk.utils.AttachmentUtils
 import ru.home.customvk.utils.AttachmentUtils.compressBitmap
 import ru.home.customvk.utils.PostUtils.POSTS_IMAGE_PROVIDER_AUTHORITIES
-import ru.home.customvk.utils.PostUtils.areLikedPostPresent
 import ru.home.customvk.utils.PostUtils.createFileToCacheBitmap
+import ru.home.customvk.utils.PreferencesUtils
 import java.io.File
 import java.io.FileOutputStream
-import kotlin.LazyThreadSafetyMode.NONE
-
+import javax.inject.Inject
 
 class PostsFragment : Fragment() {
 
     companion object {
         private const val ARG_FAVORITE = "is_favorite"
+        private const val ARG_FIRST_LOADING = "is_first_loading"
+
         private val PUBLIC_IMAGES_DIR = Environment.DIRECTORY_PICTURES
+
         private const val PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1
 
-        fun newInstance(isFavorite: Boolean = false): PostsFragment =
-            PostsFragment().apply {
+        fun newInstance(isFavorite: Boolean = false, isFirstLoading: Boolean = false): PostsFragment {
+            return PostsFragment().apply {
                 arguments = Bundle().apply {
                     putBoolean(ARG_FAVORITE, isFavorite)
+                    putBoolean(ARG_FIRST_LOADING, isFirstLoading)
                 }
             }
+        }
     }
 
-    private val postsViewModel: PostsViewModel by lazy(NONE) {
-        ViewModelProvider(this, PostsViewModel.PostsViewModelFactory(isFavoritesFragment)).get(PostsViewModel::class.java)
-    }
+    @Inject
+    lateinit var preferencesUtils: PreferencesUtils
 
-    private lateinit var adapter: PostAdapter
+    @Inject
+    lateinit var postsViewModel: PostsViewModel
+
+    private lateinit var adapter: PostsAdapter
     private lateinit var layoutManager: LinearLayoutManager
 
     private var isFavoritesFragment = false
+    private var isFirstLoading = false
 
     private var postsFragmentInterractor: PostsFragmentInterractor? = null
 
@@ -73,49 +80,27 @@ class PostsFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View = inflater.inflate(R.layout.news_fragment, container, false)
+    ): View {
+        (activity?.application as VkApplication).appComponent.postsFragmentSubComponentBuilder().with(this).build().inject(this)
+        return inflater.inflate(R.layout.fragment_posts, container, false)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         isFavoritesFragment = requireArguments().getBoolean(ARG_FAVORITE)
+        isFirstLoading = requireArguments().getBoolean(ARG_FIRST_LOADING)
         if (context is PostsFragmentInterractor) {
             postsFragmentInterractor = (context as PostsFragmentInterractor)
         }
+        configureViewModel()
         configureLayout()
-        synchronizePostsIfNeeded()
+        if (savedInstanceState == null) {
+            postsViewModel.onAttachViewModel(isFavoritesFragment, isFirstLoading)
+        }
+    }
+
+    private fun configureViewModel() {
         postsViewModel.getStateLiveData().observe(viewLifecycleOwner, ::render)
-    }
-
-    private fun render(state: State) {
-        loading.isVisible = state.isLoading
-
-        postsRecycler.isVisible = state.posts.isNotEmpty()
-        if (!state.posts.isNullOrEmpty()) {
-            adapter.posts = state.posts
-        }
-
-        state.error?.let { showQueryErrorDialog() }
-
-        postsFragmentInterractor?.updateFavoritesVisibility(state.posts.areLikedPostPresent())
-
-        postsFragmentInterractor?.setNeedToSyncPosts(state.isSynchronizationNeeded)
-
-        postsRefresher.isRefreshing = false
-        if (state.isUpdatingFinished) {
-            postsRecycler.post { layoutManager.scrollToPosition(0) }
-        }
-    }
-
-    private fun showQueryErrorDialog() = showErrorDialog(R.string.posts_loading_dialog_error_message)
-
-    private fun showErrorDialog(@StringRes resErrorMessage: Int, @StringRes resTitle: Int = R.string.default_dialog_error_title) {
-        AlertDialog.Builder(requireContext(), R.style.AlertDialogStyle)
-            .setTitle(resTitle)
-            .setMessage(resErrorMessage)
-            .setPositiveButton(getString(android.R.string.ok)) { dialog, _ ->
-                dialog.cancel()
-            }
-            .create()
-            .show()
+        postsViewModel.getUiEffectsLiveData().observe(viewLifecycleOwner, ::handleUiEffect)
     }
 
     private fun configureLayout() {
@@ -125,20 +110,50 @@ class PostsFragment : Fragment() {
         postsRecycler.adapter = adapter
         postsRecycler.layoutManager = layoutManager
         postsRecycler.addItemDecoration(createPostsDivider(layoutManager))
-
         ItemTouchHelper(PostTouchHelperCallback(adapter)).attachToRecyclerView(postsRecycler)
 
-        postsRefresher.setOnRefreshListener { postsViewModel.input.accept(Action.RefreshPosts) }
+        postsRefresher.setOnRefreshListener(postsViewModel::refreshPosts)
     }
 
-    private fun createAdapter() = PostAdapter(
-        onLikeListener = { postIndex -> postsViewModel.processLike(postIndex) },
-        onRemoveSwipeListener = { postPosition -> postsViewModel.hidePost(postPosition) },
-        onShareAction = { bitmap: Bitmap, imageUri: String ->
-            val shareDialog = setupShareImageDialog(bitmap, imageUri)
-            shareDialog.show()
+    private fun render(state: State) {
+        loading.isVisible = state.isLoading
+
+        if (state.isUpdatingPosts) {
+            postsRecycler.post { emptyPostsScreen.isVisible = state.isEmptyState }
+            adapter.posts = state.posts
         }
-    )
+    }
+
+    private fun handleUiEffect(uiEffect: UiEffect) {
+        when (uiEffect) {
+            is UiEffect.UpdateFavoritesVisibility -> postsFragmentInterractor?.updateFavoritesVisibility(uiEffect.areLikedPostsPresent)
+            is UiEffect.FinishRefreshing -> postsRefresher.isRefreshing = false
+            is UiEffect.ErrorUpdatingPosts -> showQueryErrorDialog()
+            is UiEffect.ScrollRecyclerToPosition -> postsRecycler.post { postsRecycler.scrollToPosition(uiEffect.position) }
+        }
+    }
+
+    private fun showQueryErrorDialog() = showErrorDialog(R.string.posts_loading_dialog_error_message)
+
+    private fun showErrorDialog(@StringRes resErrorMessage: Int, @StringRes resTitle: Int = R.string.newsfeed_error_dialog_title) {
+        AlertDialog.Builder(requireContext(), R.style.AlertDialogStyle)
+            .setTitle(resTitle)
+            .setMessage(resErrorMessage)
+            .setPositiveButton(getString(android.R.string.ok)) { dialog, _ -> dialog.cancel() }
+            .create()
+            .show()
+    }
+
+    private fun createAdapter(): PostsAdapter {
+        return PostsAdapter(
+            onLikeListener = { postIndex -> postsViewModel.processLike(postIndex) },
+            onRemoveSwipeListener = { postPosition -> postsViewModel.hidePost(postPosition) },
+            onShareAction = { bitmap: Bitmap, imageUri: String ->
+                val shareDialog = setupShareImageDialog(bitmap, imageUri)
+                shareDialog.show()
+            }
+        )
+    }
 
     private fun setupShareImageDialog(bitmap: Bitmap, imageUrl: String): BottomSheetDialog {
         val shareDialog = BottomSheetDialog(activity!!)
@@ -183,42 +198,44 @@ class PostsFragment : Fragment() {
     private fun showToast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 
     private lateinit var savingBitmapAfterRequestingPermissions: () -> Unit
-    private fun configureOnSavingPictureActions(bitmap: Bitmap, bitmapFullName: String, imageMimeType: String) = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
-            val resolver: ContentResolver = activity!!.contentResolver
-            val contentValues = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, bitmapFullName)
-                put(MediaStore.MediaColumns.MIME_TYPE, imageMimeType)
-                put(MediaStore.MediaColumns.RELATIVE_PATH, PUBLIC_IMAGES_DIR)
+    private fun configureOnSavingPictureActions(bitmap: Bitmap, bitmapFullName: String, imageMimeType: String) {
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+                val resolver: ContentResolver = activity!!.contentResolver
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, bitmapFullName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, imageMimeType)
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, PUBLIC_IMAGES_DIR)
+                }
+                val localImageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
+                resolver.openOutputStream(localImageUri)!!.compressBitmap(bitmap)
+                showDialogToOpenImageInOtherApp(localImageUri, imageMimeType)
+                onSuccessSavingToGalleryNotification()
             }
-            val localImageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
-            resolver.openOutputStream(localImageUri)!!.compressBitmap(bitmap)
-            showDialogToOpenImageInOtherApp(localImageUri, imageMimeType)
-            onSuccessBitmapGallerySavingNotification()
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                    && checkSelfPermission(
+                context!!,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED -> {
+                savingBitmapAfterRequestingPermissions = { onLegacySavingActions(bitmap, bitmapFullName) }
+                requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE)
+            }
+            else -> onLegacySavingActions(bitmap, bitmapFullName)
         }
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                && checkSelfPermission(context!!, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED -> {
-            savingBitmapAfterRequestingPermissions = { onLegacySavingActions(bitmap, bitmapFullName, imageMimeType) }
-            requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE)
-        }
-        else -> onLegacySavingActions(bitmap, bitmapFullName, imageMimeType)
     }
 
-    private fun onSuccessBitmapGallerySavingNotification() =
+    private fun onSuccessSavingToGalleryNotification() {
         showToast(String.format(getString(R.string.successful_image_saving_notification_format), PUBLIC_IMAGES_DIR))
+    }
 
-    private fun onLegacySavingActions(bitmap: Bitmap, bitmapFullName: String, imageMimeType: String) {
+    private fun onLegacySavingActions(bitmap: Bitmap, bitmapFullName: String) {
         @Suppress("DEPRECATION")
         val imageFileToSave = File(Environment.getExternalStoragePublicDirectory(PUBLIC_IMAGES_DIR), bitmapFullName)
         FileOutputStream(imageFileToSave).compressBitmap(bitmap)
-        onSuccessBitmapGallerySavingNotification()
+        onSuccessSavingToGalleryNotification()
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         if (requestCode == PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 savingBitmapAfterRequestingPermissions()
@@ -238,10 +255,6 @@ class PostsFragment : Fragment() {
         }
     }
 
-    private fun synchronizePostsIfNeeded() {
-        postsFragmentInterractor?.isNeedToSyncPosts()?.let { isNeedToSync -> postsViewModel.synchronizePostsIfNeeded(isNeedToSync) }
-    }
-
     private fun createPostsDivider(layoutManager: LinearLayoutManager): DividerItemDecoration {
         val divider = DividerItemDecoration(postsRecycler.context, layoutManager.orientation)
         divider.setDrawable(ShapeDrawable().apply {
@@ -251,9 +264,16 @@ class PostsFragment : Fragment() {
         return divider
     }
 
+    private fun saveRecyclerPosition() {
+        preferencesUtils.saveRecyclerPosition(layoutManager.findFirstVisibleItemPosition(), isFavoritesFragment)
+    }
+
+    override fun onStop() {
+        saveRecyclerPosition()
+        super.onStop()
+    }
+
     interface PostsFragmentInterractor {
         fun updateFavoritesVisibility(isFavoritesFragmentVisible: Boolean)
-        fun setNeedToSyncPosts(isNeedToSyncPosts: Boolean)
-        fun isNeedToSyncPosts(): Boolean
     }
 }

@@ -9,7 +9,7 @@
 
     <TextView
         android:id="@+id/saveToGalleryBottomDialogItem"
-        style="@style/BottomDialogItemStyle"
+        style="@style/BottomSharingDialogItemStyle"
         android:layout_width="match_parent"
         android:layout_height="@dimen/sharing_dialog_item_height"
         android:text="@string/share_image_dialog_save_option"
@@ -17,7 +17,7 @@
 
     <TextView
         android:id="@+id/shareBottomDialogItem"
-        style="@style/BottomDialogItemStyle"
+        style="@style/BottomSharingDialogItemStyle"
         android:layout_width="match_parent"
         android:layout_height="@dimen/sharing_dialog_item_height"
         android:text="@string/share_image_dialog_share_option"

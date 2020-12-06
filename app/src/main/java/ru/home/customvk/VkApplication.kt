@@ -1,22 +1,18 @@
 package ru.home.customvk
 
 import android.app.Application
-import androidx.room.Room
 import com.facebook.stetho.Stetho
-import ru.home.customvk.data.database.VkDatabase
+import ru.home.customvk.di.AppComponent
+import ru.home.customvk.di.DaggerAppComponent
 
 class VkApplication : Application() {
 
-    companion object {
-        internal lateinit var instance: VkApplication
-    }
-
-    lateinit var database: VkDatabase
+    lateinit var appComponent: AppComponent
 
     override fun onCreate() {
         super.onCreate()
-        instance = this
         Stetho.initializeWithDefaults(this)
-        database = Room.databaseBuilder(this, VkDatabase::class.java, "vk_database").build()
+
+        appComponent = DaggerAppComponent.builder().withApplication(this).build()
     }
 }

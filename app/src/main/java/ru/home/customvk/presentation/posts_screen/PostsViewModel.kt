@@ -1,12 +1,11 @@
 package ru.home.customvk.presentation.posts_screen
 
+import android.app.Application
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import com.freeletics.rxredux.SideEffect
 import com.freeletics.rxredux.reduxStore
 import com.jakewharton.rxrelay2.PublishRelay
@@ -15,220 +14,219 @@ import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.functions.Consumer
 import io.reactivex.schedulers.Schedulers
-import ru.home.customvk.data.RepositoryProvider
+import ru.home.customvk.VkApplication
+import ru.home.customvk.data.PostRepository
 import ru.home.customvk.domain.Post
 import ru.home.customvk.presentation.BaseRxViewModel
-import ru.home.customvk.utils.PostUtils.setDislikedAndDecreaseLikesCount
-import ru.home.customvk.utils.PostUtils.setLikedAndIncreaseLikesCount
+import ru.home.customvk.utils.PostUtils.areLikedPostsPresent
+import ru.home.customvk.utils.PostUtils.likePostAtPosition
+import ru.home.customvk.utils.PreferencesUtils
+import ru.home.customvk.utils.SingleLiveEvent
+import javax.inject.Inject
+import kotlin.properties.Delegates
 
 private typealias PostSideEffect = SideEffect<State, out Action>
 
-open class PostsViewModel(private val isFilterByFavorites: Boolean) : BaseRxViewModel() {
+class PostsViewModel(application: Application) : BaseRxViewModel(application) {
+
+    @Inject
+    lateinit var postRepository: PostRepository
+
+    @Inject
+    lateinit var preferencesUtils: PreferencesUtils
 
     private companion object {
         private const val TAG = "POSTS_VIEW_MODEL"
-        private const val DELAY_BEFORE_CANCELING_ACTION_MILLIS = 500L
+
+        // small delay to prevent flickering visual effects and recycler's inconsistency states.
+        private const val UPDATING_DELAY_MILLIS = 300L
     }
 
-    private var posts: MutableList<Post>? = emptyList<Post>().toMutableList()
-
     private val inputRelay: Relay<Action> = PublishRelay.create()
-    val input: Consumer<Action> get() = inputRelay
-
+    private val input: Consumer<Action> get() = inputRelay
+    private var state: Observable<State> = inputRelay.reduxStore(
+        initialState = State(),
+        sideEffects = listOf(loadPosts(), updatePostsWithScrolling()),
+        reducer = { state, action -> state.reduce(action) }
+    )
     private val currentState: MutableLiveData<State> = MutableLiveData()
     fun getStateLiveData() = currentState as LiveData<State>
 
-    private val state: Observable<State> = inputRelay.reduxStore(
-        initialState = State(),
-        sideEffects = listOf(loadFirstPage(), synchronizePosts(), refreshPosts(), likePost(), requestToHidePost()),
-        reducer = { state, action -> state.reduce(action) }
-    )
+    private val uiEffectsRelay = PublishRelay.create<UiEffect>()
+    private val uiEffectsInput: Consumer<UiEffect> get() = uiEffectsRelay
+    private val uiEffectsState: Observable<UiEffect> get() = uiEffectsRelay
+    private val currentUiEffects: SingleLiveEvent<UiEffect> = SingleLiveEvent()
+    fun getUiEffectsLiveData() = currentUiEffects as LiveData<UiEffect>
+
+    private var posts: List<Post> = emptyList()
+    private var isAttachedToFavoritesFragment by Delegates.notNull<Boolean>()
 
     init {
+        (application as VkApplication).appComponent.postsViewModelSubComponentBuilder().build().inject(this)
+    }
+
+    fun onAttachViewModel(isFilterByFavorites: Boolean, isFirstLoading: Boolean) {
+        this.isAttachedToFavoritesFragment = isFilterByFavorites
+
         state.observeOn(AndroidSchedulers.mainThread())
             .subscribe { currentState.value = it }
             .disposeOnFinish()
+        uiEffectsState.observeOn(AndroidSchedulers.mainThread())
+            .subscribe { currentUiEffects.value = it }
+            .disposeOnFinish()
 
-        input.accept(Action.LoadFirstPage)
+        input.accept(Action.LoadPosts(isFirstLoading = isFirstLoading))  // show cached posts firstly.
+        if (!isFilterByFavorites && isFirstLoading) {
+            // silent update from network on 1st loading. Delay is added to prevent inconsistency of update in the recycler.
+            Handler(Looper.getMainLooper()).postDelayed({ refreshPosts(true) }, UPDATING_DELAY_MILLIS)
+        }
     }
 
-    private fun loadFirstPage(): PostSideEffect {
+    fun refreshPosts(showLoadingState: Boolean = false) = input.accept(Action.LoadPosts(isLoading = showLoadingState, isRefreshing = true))
+
+    private fun loadPosts(): PostSideEffect {
         return { actions, _ ->
-            actions.ofType(Action.LoadFirstPage::class.java)
-                .flatMap {
-                    if (isFilterByFavorites) {
-                        fetchPosts()
-                    } else {
-                        // since "news" tab is initialized immediately after authentication -> it should perform network query
-                        fetchPosts(forceUpdate = true)
-                    }.map { Action.PostsLoaded(posts = it) as Action }
-                }.setupDefaultOnErrorLoadingPostsAction()
-        }
-    }
-
-    private fun fetchPosts(forceUpdate: Boolean = false): Observable<List<Post>> {
-        return RepositoryProvider.postRepository
-            .fetchPosts(forceUpdate = forceUpdate, isFilterByFavorites = isFilterByFavorites)
-            .subscribeOn(Schedulers.io())
-            .doOnSuccess(::setPostsValue)
-            .toObservable()
-    }
-
-    private fun logMessage(message: String) = Log.d(TAG, message)
-
-    private fun logError(logErrorMessage: String, throwable: Throwable) = Log.e(TAG, logErrorMessage, throwable)
-
-    private fun setPostsValue(updatedPosts: List<Post>) {
-        posts = updatedPosts.toMutableList()
-    }
-
-    /**
-     * process user's clicking by like button
-     */
-    fun processLike(postIndex: Int) {
-        val postToUpdate = posts!![postIndex].copy()
-        if (postToUpdate.isLiked) {
-            onDislikeAction(postToUpdate, postIndex)
-        } else {
-            onPositiveLikeAction(postToUpdate, postIndex)
-        }
-    }
-
-    private fun onPositiveLikeAction(post: Post, postIndex: Int) {
-        post.setLikedAndIncreaseLikesCount()
-        updatePost(postIndex, post)
-        input.accept(Action.UpdatePostsLocally(posts!!))
-        input.accept(Action.LikePost(postIndex))
-    }
-
-    private fun onDislikeAction(post: Post, postIndex: Int) {
-        post.setDislikedAndDecreaseLikesCount()
-        if (isFilterByFavorites) {
-            removePost(postIndex)  // in case of favorites' screen - remove on dislike is only possible option.
-        } else {
-            updatePost(postIndex, post)
-        }
-        input.accept(Action.UpdatePostsLocally(posts!!))
-        input.accept(Action.LikePost(postIndex, isPositiveLike = false))
-    }
-
-    private fun likePost(): PostSideEffect {
-        return { actions, state ->
-            actions.ofType(Action.LikePost::class.java)
-                .flatMap {
-                    val positionOfLikedPost = state().likeStateInfo!!.positionOfPostToLike
-                    val likedPost: Post = posts?.get(positionOfLikedPost)!!
-                    val isPositiveLikeRequest = state().likeStateInfo!!.isPositiveLike
-                    RepositoryProvider.postRepository
-                        .sendLikeRequest(likedPost, isPositiveLikeRequest)
+            actions.ofType(Action.LoadPosts::class.java)
+                .flatMap { loadingAction ->
+                    postRepository.fetchPosts(forceUpdate = loadingAction.isRefreshing, isFilterByFavorites = isAttachedToFavoritesFragment)
                         .subscribeOn(Schedulers.io())
-                        .doOnSuccess { updatedPost ->
-                            logMessage("Success like request of post at position $positionOfLikedPost")
-                            if (updatedPost.likesCount != likedPost.likesCount && !isFilterByFavorites) {
-                                updatePost(positionOfLikedPost, updatedPost)
+                        .toObservable()
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .map {
+                            val werePostsBeforeUpdate = posts.isNotEmpty()  // if were not posts -> no need to scroll up on update
+                            posts = it
+                            activateOnFinishLoadingUiEffects(loadingAction.isRefreshing)
+                            val isScrollingToFirstPosition = loadingAction.isRefreshing && posts.size > 1 && werePostsBeforeUpdate
+                            val isScrollingToSavedPosition = !loadingAction.isRefreshing && !loadingAction.isFirstLoading
+                            if (isScrollingToFirstPosition || isScrollingToSavedPosition) {
+                                Action.PostsUpdatedWithScrolling(
+                                    posts = posts,
+                                    isScrollingToFirstPosition = isScrollingToFirstPosition,
+                                    isScrollingToSavedPosition = isScrollingToSavedPosition,
+                                    isFavoritesFragment = isAttachedToFavoritesFragment
+                                )
+                            } else {
+                                Action.PostsUpdated(
+                                    posts = posts,
+                                    isFavoritesFragment = isAttachedToFavoritesFragment,
+                                    isFirstLoading = loadingAction.isFirstLoading
+                                )
                             }
                         }
-                        .toObservable()
-                        .map { Action.PostIsLiked(posts = posts!!) as Action }
-                        .onErrorReturn { throwable ->
-                            Handler(Looper.getMainLooper()).postDelayed({
-                                cancelLikeRequest(likedPost.copy(), positionOfLikedPost, isPositiveLikeRequest)
-                                logError("Fail to like post at $positionOfLikedPost position", throwable)
-                            }, DELAY_BEFORE_CANCELING_ACTION_MILLIS)
-                            Action.ErrorLikePosts(error = throwable, posts = posts!!)
+                        .onErrorReturn { error ->
+                            activateOnFinishLoadingUiEffects(loadingAction.isRefreshing)
+                            logError("Error updating posts, force update = ${loadingAction.isRefreshing}", error)
+                            uiEffectsInput.accept(UiEffect.ErrorUpdatingPosts)
+                            Action.ErrorUpdatingPosts()
                         }
                 }
         }
     }
 
-    private fun cancelLikeRequest(post: Post, postIndex: Int, wasPositiveLikeRequest: Boolean) {
-        if (wasPositiveLikeRequest) {
-            post.setDislikedAndDecreaseLikesCount()
-            updatePost(postIndex, post)
-        } else {
-            post.setLikedAndIncreaseLikesCount()
-            if (isFilterByFavorites) {
-                addPost(postIndex, post)
-            } else {
-                updatePost(postIndex, post)
-            }
+    private fun updatePostsWithScrolling(): PostSideEffect {
+        return { actions, _ ->
+            actions.ofType(Action.PostsUpdatedWithScrolling::class.java)
+                .flatMap { updatingAction ->
+                    Observable.fromCallable {
+                        when {
+                            updatingAction.isScrollingToFirstPosition -> uiEffectsInput.accept(UiEffect.ScrollRecyclerToPosition(0))
+                            updatingAction.isScrollingToSavedPosition -> {
+                                uiEffectsInput.accept(
+                                    UiEffect.ScrollRecyclerToPosition(preferencesUtils.getRecyclerPosition(isAttachedToFavoritesFragment))
+                                )
+                            }
+                        }
+                        Action.PostsUpdated(posts = posts, isFavoritesFragment = isAttachedToFavoritesFragment)
+                    }
+                }
         }
     }
 
-    private fun addPost(postIndex: Int, post: Post) {
-        posts?.add(postIndex, post)
+    private fun activateOnFinishLoadingUiEffects(isRefreshing: Boolean) {
+        updateFavoritesVisibility()
+        if (isRefreshing) {
+            uiEffectsInput.accept(UiEffect.FinishRefreshing)
+        }
     }
 
-    private fun updatePost(postIndex: Int, updatedPost: Post) {
-        posts!![postIndex] = updatedPost
+    private fun updateFavoritesVisibility() = uiEffectsInput.accept(UiEffect.UpdateFavoritesVisibility(posts.areLikedPostsPresent()))
+
+    /**
+     * process user's clicking by like button
+     */
+    fun processLike(postIndex: Int) {
+        val updatedPosts = posts.toMutableList()
+        val likedPost = updatedPosts.likePostAtPosition(postIndex)
+        if (isAttachedToFavoritesFragment) {
+            updatedPosts.removeAt(postIndex)
+        }
+        input.accept(Action.PostsUpdated(posts = updatedPosts, isFavoritesFragment = isAttachedToFavoritesFragment))
+
+        processLikeRequest(updatedPosts, likedPost, postIndex)
+    }
+
+    private fun processLikeRequest(updatedPosts: MutableList<Post>, likedPost: Post, postIndex: Int) {
+        postRepository.sendLikeRequest(likedPost, likedPost.isLiked)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { updatedPost ->
+                    logMessage("Success like request of post at position $postIndex")
+                    posts = updatedPosts
+                    if (updatedPost.likesCount != likedPost.likesCount && !isAttachedToFavoritesFragment) {
+                        (posts as MutableList<Post>)[postIndex] = updatedPost
+                    }
+                    input.accept(Action.PostsUpdated(posts = posts, isFavoritesFragment = isAttachedToFavoritesFragment))
+                    updateFavoritesVisibility()
+                },
+                { throwable ->
+                    logError("Fail to like post at $postIndex position", throwable)
+                    updateOnErrorWithDelay()
+                }
+            )
+            .disposeOnFinish()
     }
 
     /**
      * process hiding of post by swiping from right to left in the newsfeed.
      */
     fun hidePost(postIndex: Int) {
-        removePost(postIndex)
-        input.accept(Action.UpdatePostsLocally(posts!!))
+        val updatedPosts = posts.toMutableList()
+        updatedPosts.removeAt(postIndex)
+        input.accept(Action.PostsUpdated(posts = updatedPosts, isFavoritesFragment = isAttachedToFavoritesFragment))
 
-        input.accept(Action.HidePost(postIndex))
+        requestToHidePost(postIndex, updatedPosts)
     }
 
-    private fun requestToHidePost(): PostSideEffect {
-        return { actions, state ->
-            actions.ofType(Action.HidePost::class.java)
-                .flatMap {
-                    val postIndex = state().indexOfPostToHide!!
-                    val postToHide: Post = posts!![postIndex]
-                    RepositoryProvider.postRepository
-                        .hidePost(postToHide)
-                        .subscribeOn(Schedulers.io())
-                        .doOnSuccess { responseCode -> logMessage("post is hidden, response code: $responseCode") }
-                        .toObservable()
-                        .map { Action.PostIsHidden(posts!!) as Action }
-                        .onErrorReturn { throwable ->
-                            Handler(Looper.getMainLooper()).postDelayed({
-                                logError("fail to hide post at $postIndex position", throwable)
-                                addPost(postIndex, postToHide)
-                            }, DELAY_BEFORE_CANCELING_ACTION_MILLIS)
-                            Action.ErrorHidePosts(throwable, posts!!)
-                        }
+    private fun requestToHidePost(postIndex: Int, updatedPosts: List<Post>) {
+        val postToHide: Post = posts[postIndex]
+        postRepository.hidePost(postToHide)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { responseCode ->
+                    posts = updatedPosts
+                    logMessage("post is hidden, response code: $responseCode")
+                    input.accept(Action.PostsUpdated(posts = posts, isFavoritesFragment = isAttachedToFavoritesFragment))
+                    updateFavoritesVisibility()
+                },
+                { throwable ->
+                    logError("fail to hide post at $postIndex position", throwable)
+                    updateOnErrorWithDelay()
                 }
-        }
+            )
+            .disposeOnFinish()
     }
 
-    /**
-     * Post have to be removed in case of successful hiding or dislike in "favorites" tab.
-     */
-    private fun removePost(postIndex: Int) {
-        posts?.removeAt(postIndex)
+    private fun updateOnErrorWithDelay() {
+        Handler(Looper.getMainLooper()).postDelayed({
+            input.accept(Action.ErrorUpdatingPosts(posts = posts))
+            uiEffectsInput.accept(UiEffect.ErrorUpdatingPosts)
+            updateFavoritesVisibility()
+        }, UPDATING_DELAY_MILLIS)
     }
 
-    /**
-     * Refresh newsfeed by SwipeRefresh action.
-     */
-    private fun refreshPosts(): PostSideEffect {
-        return { actions, _ ->
-            actions.ofType(Action.RefreshPosts::class.java)
-                .flatMap { fetchPosts(forceUpdate = true).map { Action.FinishRefreshing(it) as Action } }
-                .setupDefaultOnErrorLoadingPostsAction()
-        }
-    }
+    private fun logMessage(message: String) = Log.d(TAG, message)
 
-    fun synchronizePostsIfNeeded(isNeedToSync: Boolean) {
-        if (isNeedToSync && posts != null) {
-            input.accept(Action.SynchronizePosts)
-        }
-    }
-
-    private fun synchronizePosts(): PostSideEffect {
-        return { actions, _ ->
-            actions.ofType(Action.SynchronizePosts::class.java)
-                .flatMap { fetchPosts().map { Action.FinishSynchronization(it) as Action } }
-                .setupDefaultOnErrorLoadingPostsAction()
-        }
-    }
-
-    class PostsViewModelFactory(private val isFilterByFavorites: Boolean) : ViewModelProvider.NewInstanceFactory() {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T = PostsViewModel(isFilterByFavorites) as T
-    }
+    private fun logError(logErrorMessage: String, throwable: Throwable) = Log.e(TAG, logErrorMessage, throwable)
 }

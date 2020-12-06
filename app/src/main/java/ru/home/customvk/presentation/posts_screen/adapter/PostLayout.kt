@@ -25,20 +25,19 @@ class PostLayout @JvmOverloads constructor(
         LayoutInflater.from(context).inflate(R.layout.view_post, this, true)
     }
 
-    private fun ImageView.setImageSizeParams(desiredWidth: Int) {
+    private fun ImageView.updateMinimumHeight() {
         if (drawable == null) {
             minimumHeight = 0
-        } else if (drawable.intrinsicWidth < desiredWidth || drawable.intrinsicHeight < minimumHeight) {
-            scaleType = ImageView.ScaleType.CENTER_CROP
         }
     }
 
-    private fun TextView.getTextHeight() =
-            if (text.isBlank()) {
-                measuredHeight
-            } else {
-                getHeightWithMargins()
-            }
+    private fun TextView.getTextHeight(): Int {
+        return if (text.isBlank()) {
+            measuredHeight
+        } else {
+            getHeightWithMargins()
+        }
+    }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val desiredWidth = MeasureSpec.getSize(widthMeasureSpec)
@@ -60,7 +59,7 @@ class PostLayout @JvmOverloads constructor(
             measureChildWithMargins(mainTextView, widthMeasureSpec, 0, heightMeasureSpec, height)
             height += mainTextView.getTextHeight()
 
-            postImageView.setImageSizeParams(desiredWidth)
+            postImageView.updateMinimumHeight()
             measureChildWithMargins(postImageView, widthMeasureSpec, 0, heightMeasureSpec, height)
             height += postImageView.getHeightWithMargins()
         }
@@ -142,7 +141,6 @@ class PostLayout @JvmOverloads constructor(
     private fun View.getHeightWithMargins(): Int = measuredHeight + marginTop + marginBottom
 
     private fun View.getWidthWithMargins(): Int = measuredWidth + marginStart + marginEnd
-
 
     // Setting Layout params methods:
     override fun generateLayoutParams(attrs: AttributeSet?) = MarginLayoutParams(context, attrs)
