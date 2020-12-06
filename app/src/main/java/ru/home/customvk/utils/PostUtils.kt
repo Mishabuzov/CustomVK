@@ -4,19 +4,18 @@ import ru.home.customvk.data.api.network_entities.NewsfeedObject
 import ru.home.customvk.data.api.network_entities.PostNetworkModel
 import ru.home.customvk.domain.Post
 import ru.home.customvk.domain.PostSource
-import ru.home.customvk.utils.AttachmentUtils.takeFirstPhotoUrl
+import ru.home.customvk.utils.AttachmentUtils.extractPhotoUrl
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
 
 object PostUtils {
+
     private const val CACHED_IMAGES_PATH_FOR_SHARING = "shared_images"
     const val POSTS_IMAGE_PROVIDER_AUTHORITIES = "ru.home.customvk.imageprovider"
 
     private const val POSTS_TIME_PATTERN_FORMAT = "dd.MM.yyyy в HH:mm"
-
-    private const val PHOTO_ATTACHMENT_TYPE = "photo"
 
     const val DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
 
@@ -49,7 +48,7 @@ object PostUtils {
             insertionTimeMillis = System.currentTimeMillis(),
             readablePublicationDate = (date * 1000).convertMillisTimestampToHumanReadableDate(),
             text = text,
-            pictureUrl = attachments?.filter { it.type == PHOTO_ATTACHMENT_TYPE }?.takeFirstPhotoUrl() ?: "",
+            pictureUrl = attachments?.extractPhotoUrl() ?: "",
             likesCount = likes.count,
             isLiked = likes.isLiked == 1,
             commentsCount = comments.count,
@@ -82,22 +81,31 @@ object PostUtils {
         return postToUpdate
     }
 
+    private fun createSourceNameFromUserName(firstName: String, lastName: String): String {
+        return if (lastName.isEmpty()) {
+            firstName
+        } else {
+            "$firstName $lastName"
+        }
+    }
+
     fun NewsfeedObject.toPosts(): List<Post> {
         val extractedPosts: MutableList<Post> = mutableListOf()
         posts.forEach { networkPost ->
             val sourceName: String
             val sourceIconUrl: String
             if (networkPost.sourceId > 0) {  // the condition means that the post was published by some user.
-                val user = users.find { it.id == networkPost.sourceId }
-                sourceName = "${user?.firstName} ${user?.lastName}"
-                sourceIconUrl = user?.iconUrl ?: ""
+                val user = users.find { it.id == networkPost.sourceId }!!
+                sourceName = createSourceNameFromUserName(user.firstName, user.lastName)
+                sourceIconUrl = user.iconUrl
             } else {  // either the post was published by some group.
-                val group = groups.find { it.id == abs(networkPost.sourceId) }
-                sourceName = group?.name ?: ""
-                sourceIconUrl = group?.iconUrl ?: ""
+                val group = groups.find { it.id == abs(networkPost.sourceId) }!!
+                sourceName = group.name
+                sourceIconUrl = group.iconUrl
             }
             extractedPosts.add(networkPost.toPost(sourceName, sourceIconUrl))
         }
         return extractedPosts
     }
+
 }
