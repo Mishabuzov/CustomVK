@@ -1,18 +1,24 @@
 package ru.home.customvk.utils
 
+import android.content.Context
 import android.content.Context.MODE_PRIVATE
-import ru.home.customvk.VkApplication
+import javax.inject.Inject
 
-object PreferenceUtils {
+class PreferencesUtils @Inject constructor(private val appContext: Context) {
 
-    private const val SHARED_PREFERENCES_NAME = "SHARED_PREFERENCES"
-    private const val ACCESS_TOKEN_KEY = "ACCESS_TOKEN"
-    private const val POSTS_RECYCLER_KEY = "POSTS_RECYCLER"
-    private const val FAVORITES_RECYCLER_KEY = "FAVORITES_RECYCLER"
+    private companion object {
+        private const val SHARED_PREFERENCES_NAME = "SHARED_PREFERENCES"
+        private const val ACCESS_TOKEN_KEY = "ACCESS_TOKEN"
+        private const val POSTS_RECYCLER_KEY = "POSTS_RECYCLER"
+        private const val FAVORITES_RECYCLER_KEY = "FAVORITES_RECYCLER"
+    }
 
-    private fun getDefaultSharedPreferences() = VkApplication.instance.getSharedPreferences(SHARED_PREFERENCES_NAME, MODE_PRIVATE)
+    lateinit var accessToken: String
+
+    private fun getDefaultSharedPreferences() = appContext.getSharedPreferences(SHARED_PREFERENCES_NAME, MODE_PRIVATE)
 
     fun saveToken(accessToken: String) {
+        this.accessToken = accessToken
         getDefaultSharedPreferences()
             .edit()
             .putString(ACCESS_TOKEN_KEY, accessToken)
@@ -20,13 +26,6 @@ object PreferenceUtils {
     }
 
     fun getToken() = getDefaultSharedPreferences().getString(ACCESS_TOKEN_KEY, "")
-
-    fun removeToken() {
-        getDefaultSharedPreferences()
-            .edit()
-            .remove(ACCESS_TOKEN_KEY)
-            .apply()
-    }
 
     private fun getKeyForSavingAdapterPosition(isFavoritesFragment: Boolean): String {
         return if (isFavoritesFragment) {
