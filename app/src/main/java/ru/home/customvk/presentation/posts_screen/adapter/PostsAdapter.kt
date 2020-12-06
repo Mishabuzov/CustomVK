@@ -1,7 +1,6 @@
 package ru.home.customvk.presentation.posts_screen.adapter
 
 import android.graphics.Bitmap
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.AsyncListDiffer
@@ -13,13 +12,12 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import ru.home.customvk.R
 import ru.home.customvk.domain.Post
-import ru.home.customvk.utils.PostUtils.convertMillisTimestampToHumanReadableDate
 
-class PostAdapter(
+class PostsAdapter(
     private val onLikeListener: (Int) -> Unit,
     private val onRemoveSwipeListener: (Int) -> Unit,
     private val onShareAction: (Bitmap, String) -> Unit
-) : RecyclerView.Adapter<TextPostHolder>(), PostTouchHelperCallback.SwipeHelperAdapter {
+) : RecyclerView.Adapter<ViewHolder>(), PostTouchHelperCallback.SwipeHelperAdapter {
 
     companion object {
         private const val TYPE_TEXT_POST = 0
@@ -34,27 +32,38 @@ class PostAdapter(
             postsDiffer.submitList(value)
         }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TextPostHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val itemView = LayoutInflater.from(parent.context).inflate(R.layout.post_list_item, parent, false)
         return if (viewType == TYPE_TEXT_POST) {
-            TextPostHolder(itemView) { position -> onItemLike(position) }
+            TextPostHolder(
+                itemView = itemView,
+                onLikeAction = { position -> onItemLike(position) }
+            )
         } else {
-            ImagePostHolder(itemView, onShareAction) { position -> onItemLike(position) }
+            ImagePostHolder(
+                itemView = itemView,
+                onLikeAction = { position -> onItemLike(position) },
+                onShareAction = onShareAction,
+            )
         }
     }
 
-    override fun onBindViewHolder(holder: TextPostHolder, position: Int) {
-        val date: String = System.currentTimeMillis().convertMillisTimestampToHumanReadableDate("dd.MM.yyyy в HH:mm:ss")
-        Log.d("HOLDER", "Bind is called, time: $date")
-        holder.bind(posts[position])
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val itemViewType = getItemViewType(position)
+        if (itemViewType == TYPE_TEXT_POST) {
+            (holder as TextPostHolder).bind(posts[position])
+        } else if (itemViewType == TYPE_IMAGE_POST) {
+            (holder as ImagePostHolder).bind(posts[position])
+        }
     }
 
-    override fun getItemViewType(position: Int): Int =
-        if (posts[position].pictureUrl.isBlank()) {
+    override fun getItemViewType(position: Int): Int {
+        return if (posts[position].pictureUrl.isBlank()) {
             TYPE_TEXT_POST
         } else {
             TYPE_IMAGE_POST
         }
+    }
 
     override fun getItemCount(): Int = posts.size
 
