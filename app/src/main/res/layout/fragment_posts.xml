@@ -16,6 +16,11 @@
             layout="@layout/inc_loading"
             android:visibility="gone" />
 
+        <include
+            android:id="@+id/emptyPostsScreen"
+            layout="@layout/inc_posts_empty"
+            android:visibility="gone" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/postsRecycler"
             android:layout_width="match_parent"
