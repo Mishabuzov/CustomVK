@@ -50,7 +50,7 @@ object PostUtils {
             text = text,
             pictureUrl = attachments?.extractPhotoUrl() ?: "",
             likesCount = likes.count,
-            isLiked = likes.isLiked == 1,
+            isLiked = likes.isLiked,
             commentsCount = comments.count,
             sharesCount = reposts.count,
             viewings = views?.count ?: 0

@@ -42,10 +42,13 @@ class LikesNetworkModel(
     @SerializedName("count")
     val count: Int,
 
-    // 1 - positive, 0 - negative
     @SerializedName("user_likes")
-    val isLiked: Int,
-)
+    private val _isLiked: Int,
+) {
+    // 1 - positive, 0 - negative
+    val isLiked: Boolean
+        get(): Boolean = _isLiked == 1
+}
 
 class RepostsNetworkModel(
     @SerializedName("count")
