@@ -7,4 +7,4 @@ class Attachment(
 
 class Photo(val sizes: List<PhotoSize>)
 
-class PhotoSize(val url: String)
+class PhotoSize(val url: String, val height: Int, val width: Int)
