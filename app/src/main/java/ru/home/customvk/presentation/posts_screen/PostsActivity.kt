@@ -7,35 +7,34 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import kotlinx.android.synthetic.main.activity_news.*
 import ru.home.customvk.R
-import kotlin.LazyThreadSafetyMode.NONE
 
 class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterractor {
 
     companion object {
-        private const val CURRENT_SCREEN_TYPE = "screen_type"
-        private const val IS_FAVORITES_FRAGMENT_VISIBLE = "is_favorites_fragments_visible"
+        private const val CURRENT_FRAGMENT_TAG_KEY = "current_fragment_tag"
+        private const val CURRENT_SCREEN_ITEM_ID_KEY = "current_screen_item_id"
+        private const val IS_FAVORITES_FRAGMENT_VISIBLE_KEY = "is_favorites_fragments_visible"
 
         fun createIntent(context: Context) = Intent(context, PostsActivity::class.java)
     }
 
-    private lateinit var postsNewsFragment: PostsFragment
-    private val postsFavoritesFragment by lazy(NONE) { PostsFragment.newInstance(isFavorite = true) }
-
+    private var currentFragment: Fragment = initNewsFeedFragment(isFirstLoading = true)
+    private var currentFragmentTag: String = ScreenType.NEWS.fragmentTag
     private var currentScreenItemId: Int = ScreenType.NEWS.screenItemId
+
     private var isFavoritesFragmentVisible = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_news)
         if (savedInstanceState == null) {
-            initPostsNewsFragments(isFirstLoading = true)
-            replaceCurrentFragment(postsNewsFragment)
+            setupCurrentFragment(currentFragment, currentFragmentTag)
         } else {
-            initPostsNewsFragments()
-            currentScreenItemId = savedInstanceState.getInt(CURRENT_SCREEN_TYPE)
-            val isFavoritesFragmentVisible = savedInstanceState.getBoolean(IS_FAVORITES_FRAGMENT_VISIBLE)
+            currentScreenItemId = savedInstanceState.getInt(CURRENT_SCREEN_ITEM_ID_KEY, ScreenType.NEWS.screenItemId)
+            currentFragmentTag = savedInstanceState.getString(CURRENT_FRAGMENT_TAG_KEY, ScreenType.NEWS.fragmentTag)
+            val isFavoritesFragmentVisible = savedInstanceState.getBoolean(IS_FAVORITES_FRAGMENT_VISIBLE_KEY)
             updateFavoritesVisibility(isFavoritesFragmentVisible)
-            replaceCurrentFragment(getFragmentByScreenId())
+            currentFragment = supportFragmentManager.findFragmentByTag(currentFragmentTag) as Fragment
         }
         bottom_navigation.setOnNavigationItemSelectedListener {
             switchScreenIfNeeded(it.itemId)
@@ -43,46 +42,39 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
         }
     }
 
-    private fun initPostsNewsFragments(isFirstLoading: Boolean = false) {
-        postsNewsFragment = PostsFragment.newInstance(isFirstLoading = isFirstLoading)
+    private fun initNewsFeedFragment(isFirstLoading: Boolean = false) = PostsFragment.newInstance(isFirstLoading = isFirstLoading)
+
+    private fun initFavoritesFragment() = PostsFragment.newInstance(isFavorite = true)
+
+    private fun setupCurrentFragment(fragment: Fragment, fragmentTag: String) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment, fragmentTag)
+            .commit()
     }
 
     /**
-     * Remembers current screenItemId, and setups fragment depending on it.
+     * Remembers current fragment, its tag and screenItemId, after that setups corresponding fragment.
      */
     private fun setFragmentByScreenId(screenItemId: Int) {
-        var fragmentToLoad: PostsFragment = postsNewsFragment
         when (screenItemId) {
             ScreenType.NEWS.screenItemId -> {
                 currentScreenItemId = ScreenType.NEWS.screenItemId
+                currentFragmentTag = ScreenType.NEWS.fragmentTag
+                currentFragment = initNewsFeedFragment()
             }
             ScreenType.FAVORITES.screenItemId -> {
                 currentScreenItemId = ScreenType.FAVORITES.screenItemId
-                fragmentToLoad = postsFavoritesFragment
+                currentFragmentTag = ScreenType.FAVORITES.fragmentTag
+                currentFragment = initFavoritesFragment()
             }
         }
-        replaceCurrentFragment(fragmentToLoad)
-    }
-
-    private fun getFragmentByScreenId(): PostsFragment {
-        return when (currentScreenItemId) {
-            ScreenType.NEWS.screenItemId -> postsNewsFragment
-            ScreenType.FAVORITES.screenItemId -> postsFavoritesFragment
-            else -> throw IllegalArgumentException("Fragment with detected id is not yet implemented")
-        }
+        setupCurrentFragment(currentFragment, currentFragmentTag)
     }
 
     private fun switchScreenIfNeeded(screenItemId: Int) {
         if (currentScreenItemId != screenItemId) {
-            getFragmentByScreenId().setNeutralStateBeforeChangingFragment()
             setFragmentByScreenId(screenItemId)
         }
-    }
-
-    private fun replaceCurrentFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .commit()
     }
 
     override fun updateFavoritesVisibility(isFavoritesFragmentVisible: Boolean) {
@@ -99,12 +91,13 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putInt(CURRENT_SCREEN_TYPE, currentScreenItemId)
-        outState.putBoolean(IS_FAVORITES_FRAGMENT_VISIBLE, isFavoritesFragmentVisible)
+        outState.putInt(CURRENT_SCREEN_ITEM_ID_KEY, currentScreenItemId)
+        outState.putString(CURRENT_FRAGMENT_TAG_KEY, currentFragmentTag)
+        outState.putBoolean(IS_FAVORITES_FRAGMENT_VISIBLE_KEY, isFavoritesFragmentVisible)
     }
 
-    private enum class ScreenType(val screenItemId: Int) {
-        NEWS(R.id.actionNews),
-        FAVORITES(R.id.actionFavorites)
+    private enum class ScreenType(val screenItemId: Int, val fragmentTag: String) {
+        NEWS(R.id.actionNews, "news_fragment"),
+        FAVORITES(R.id.actionFavorites, "favorites_fragment")
     }
 }

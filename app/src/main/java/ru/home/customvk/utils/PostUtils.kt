@@ -18,7 +18,7 @@ object PostUtils {
 
     private const val PHOTO_ATTACHMENT_TYPE = "photo"
 
-    internal const val DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
+    const val DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
 
     fun List<Post>.filterByFavorites() = filter { it.isLiked }
 
@@ -35,26 +35,28 @@ object PostUtils {
     /**
      * convert milliseconds since January 1, 1970 to readable date in the provided format.
      */
-    internal fun Long.convertMillisTimestampToHumanReadableDate(timeFormat: String = POSTS_TIME_PATTERN_FORMAT): String {
+    fun Long.convertMillisTimestampToHumanReadableDate(timeFormat: String = POSTS_TIME_PATTERN_FORMAT): String {
         val dateInMillisecond = Date(this)
         val sdf = SimpleDateFormat(timeFormat, Locale.getDefault())
         sdf.timeZone = TimeZone.getTimeZone("GMT+3")
         return sdf.format(dateInMillisecond)
     }
 
-    private fun PostNetworkModel.toPost(sourceName: String, sourceIconUrl: String) = Post(
-        postId = postId,
-        source = PostSource(sourceId, sourceName, sourceIconUrl),
-        insertionTimeMillis = System.currentTimeMillis(),
-        readablePublicationDate = (date * 1000).convertMillisTimestampToHumanReadableDate(),
-        text = text,
-        pictureUrl = attachments?.filter { it.type == PHOTO_ATTACHMENT_TYPE }?.takeFirstPhotoUrl() ?: "",
-        likesCount = likes.count,
-        isLiked = likes.isLiked == 1,
-        commentsCount = comments.count,
-        sharesCount = reposts.count,
-        viewings = views?.count ?: 0
-    )
+    private fun PostNetworkModel.toPost(sourceName: String, sourceIconUrl: String): Post {
+        return Post(
+            postId = postId,
+            source = PostSource(sourceId, sourceName, sourceIconUrl),
+            insertionTimeMillis = System.currentTimeMillis(),
+            readablePublicationDate = (date * 1000).convertMillisTimestampToHumanReadableDate(),
+            text = text,
+            pictureUrl = attachments?.filter { it.type == PHOTO_ATTACHMENT_TYPE }?.takeFirstPhotoUrl() ?: "",
+            likesCount = likes.count,
+            isLiked = likes.isLiked == 1,
+            commentsCount = comments.count,
+            sharesCount = reposts.count,
+            viewings = views?.count ?: 0
+        )
+    }
 
     private fun Post.setLikedAndIncreaseLikesCount() {
         isLiked = true

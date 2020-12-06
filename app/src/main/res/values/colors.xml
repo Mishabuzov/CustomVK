@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="colorPrimary">#2B2A2A</color>
-    <color name="colorPrimaryDark">#272626</color>
+    <color name="colorPrimaryDark">#252424</color>
     <color name="colorAccent">#ECF0F1</color>
 
     <color name="textColorPrimary">#E4E4E4</color>
@@ -14,6 +14,8 @@
     <!-- post -->
     <color name="postTitleTextColor">#CDCCCC</color>
     <color name="postShadowedTextColor">#787575</color>
+
+    <color name="postImageCircularProgressColor">@color/colorAccent</color>
 
     <!-- bottom share dialog -->
     <color name="bottomDialogTextColor">#3A3838</color>
