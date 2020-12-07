@@ -37,7 +37,6 @@ import ru.home.customvk.utils.AttachmentUtils
 import ru.home.customvk.utils.AttachmentUtils.compressBitmap
 import ru.home.customvk.utils.PostUtils.POSTS_IMAGE_PROVIDER_AUTHORITIES
 import ru.home.customvk.utils.PostUtils.createFileToCacheBitmap
-import ru.home.customvk.utils.PreferencesUtils
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
@@ -61,9 +60,6 @@ class PostsFragment : Fragment() {
             }
         }
     }
-
-    @Inject
-    lateinit var preferencesUtils: PreferencesUtils
 
     @Inject
     lateinit var postsViewModel: PostsViewModel
@@ -264,12 +260,8 @@ class PostsFragment : Fragment() {
         return divider
     }
 
-    private fun saveRecyclerPosition() {
-        preferencesUtils.saveRecyclerPosition(layoutManager.findFirstVisibleItemPosition(), isFavoritesFragment)
-    }
-
     override fun onStop() {
-        saveRecyclerPosition()
+        postsViewModel.saveRecyclerPosition(layoutManager.findFirstVisibleItemPosition())
         super.onStop()
     }
 

@@ -44,7 +44,7 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
 
     private val inputRelay: Relay<Action> = PublishRelay.create()
     private val input: Consumer<Action> get() = inputRelay
-    private var state: Observable<State> = inputRelay.reduxStore(
+    private val state: Observable<State> = inputRelay.reduxStore(
         initialState = State(),
         sideEffects = listOf(loadPosts(), updatePostsWithScrolling()),
         reducer = { state, action -> state.reduce(action) }
@@ -224,6 +224,10 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
             uiEffectsInput.accept(UiEffect.ErrorUpdatingPosts)
             updateFavoritesVisibility()
         }, UPDATING_DELAY_MILLIS)
+    }
+
+    fun saveRecyclerPosition(positionToSave: Int) {
+        preferencesUtils.saveRecyclerPosition(positionToSave, isAttachedToFavoritesFragment)
     }
 
     private fun logMessage(message: String) = Log.d(TAG, message)
