@@ -39,11 +39,9 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun startLogin() =
-        VK.login(this, arrayListOf(VKScope.WALL, VKScope.FRIENDS, VKScope.OFFLINE))
+    private fun startLogin() = VK.login(this, arrayListOf(VKScope.WALL, VKScope.FRIENDS, VKScope.OFFLINE))
 
-    private fun onSuccessfulLogin() =
-        startActivity(PostsActivity.createIntent(this).addClearingStackFlags())
+    private fun onSuccessfulLogin() = startActivity(PostsActivity.createIntent(this).addClearingStackFlags())
 
     private fun Intent.addClearingStackFlags() = addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
 

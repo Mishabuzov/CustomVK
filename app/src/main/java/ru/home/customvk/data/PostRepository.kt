@@ -41,8 +41,8 @@ class DefaultPostRepository(private val postDao: PostDao, private val postApi: P
         }.filterFavoritePostsIfNeeded(isFilterByFavorites)
     }
 
-    override fun sendLikeRequest(post: Post, isPositiveLikeRequest: Boolean): Single<Post> =
-        if (isPositiveLikeRequest) {
+    override fun sendLikeRequest(post: Post, isPositiveLikeRequest: Boolean): Single<Post> {
+        return if (isPositiveLikeRequest) {
             postApi.likePost(post.postId, post.source.sourceId)
         } else {
             postApi.dislikePost(post.postId, post.source.sourceId)
@@ -52,10 +52,14 @@ class DefaultPostRepository(private val postDao: PostDao, private val postApi: P
             postDao.updatePost(updatedPost)
             updatedPost
         }
+    }
 
-    override fun hidePost(postToHide: Post): Single<Int> = postApi.ignorePost(postToHide.postId, postToHide.source.sourceId).map {
-        postDao.deletePost(postToHide)
-        it.vkResponseCode
+    override fun hidePost(postToHide: Post): Single<Int> {
+        return postApi.ignorePost(postToHide.postId, postToHide.source.sourceId)
+            .map {
+                postDao.deletePost(postToHide)
+                it.vkResponseCode
+            }
     }
 }
 
