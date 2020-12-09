@@ -15,8 +15,8 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.functions.Consumer
 import io.reactivex.schedulers.Schedulers
 import ru.home.customvk.VkApplication
-import ru.home.customvk.data.PostRepository
 import ru.home.customvk.domain.Post
+import ru.home.customvk.domain.PostRepository
 import ru.home.customvk.presentation.BaseRxViewModel
 import ru.home.customvk.utils.PostUtils.areLikedPostsPresent
 import ru.home.customvk.utils.PostUtils.likePostAtPosition

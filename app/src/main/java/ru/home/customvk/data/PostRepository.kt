@@ -4,6 +4,7 @@ import io.reactivex.Single
 import ru.home.customvk.data.api.PostApi
 import ru.home.customvk.data.database.PostDao
 import ru.home.customvk.domain.Post
+import ru.home.customvk.domain.PostRepository
 import ru.home.customvk.utils.PostUtils.filterByFavorites
 import ru.home.customvk.utils.PostUtils.toPosts
 
@@ -61,12 +62,4 @@ class DefaultPostRepository(private val postDao: PostDao, private val postApi: P
                 it.vkResponseCode
             }
     }
-}
-
-interface PostRepository {
-    fun fetchPosts(forceUpdate: Boolean = false, isFilterByFavorites: Boolean = false): Single<List<Post>>
-
-    fun sendLikeRequest(post: Post, isPositiveLikeRequest: Boolean): Single<Post>
-
-    fun hidePost(postToHide: Post): Single<Int>
 }
