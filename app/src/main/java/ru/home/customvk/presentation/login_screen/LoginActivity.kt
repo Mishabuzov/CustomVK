@@ -14,14 +14,13 @@ import ru.home.customvk.VkApplication
 import ru.home.customvk.presentation.posts_screen.PostsActivity
 import javax.inject.Inject
 
-class LoginActivity : AppCompatActivity() {
+class LoginActivity : AppCompatActivity(R.layout.activity_login) {
 
     @Inject
     lateinit var loginViewModel: LoginViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
         (application as VkApplication).appComponent.loginActivitySubComponentBuilder().with(this).build().inject(this)
 
         loginButton.setOnClickListener {

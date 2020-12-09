@@ -5,10 +5,10 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import kotlinx.android.synthetic.main.activity_news.*
+import kotlinx.android.synthetic.main.activity_posts.*
 import ru.home.customvk.R
 
-class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterractor {
+class PostsActivity : AppCompatActivity(R.layout.activity_posts), PostsFragment.PostsFragmentInterractor {
 
     companion object {
         private const val CURRENT_FRAGMENT_TAG_KEY = "current_fragment_tag"
@@ -26,7 +26,6 @@ class PostsActivity : AppCompatActivity(), PostsFragment.PostsFragmentInterracto
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_news)
         if (savedInstanceState == null) {
             setupCurrentFragment(currentFragment, currentFragmentTag)
         } else {
