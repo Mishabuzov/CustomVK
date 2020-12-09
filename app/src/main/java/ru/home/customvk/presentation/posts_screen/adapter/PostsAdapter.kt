@@ -5,9 +5,6 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.ItemTouchHelper.END
-import androidx.recyclerview.widget.ItemTouchHelper.START
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import ru.home.customvk.R
@@ -76,24 +73,5 @@ class PostsAdapter(
                 && oldPost.source.sourceId == newPost.source.sourceId
 
         override fun areContentsTheSame(oldPost: Post, newPost: Post): Boolean = oldPost == newPost
-    }
-}
-
-class PostTouchHelperCallback(private val adapter: SwipeHelperAdapter) :
-    ItemTouchHelper.SimpleCallback(0, START or END) {
-
-    override fun onMove(recyclerView: RecyclerView, viewHolder: ViewHolder, target: ViewHolder): Boolean = false
-
-    override fun onSwiped(viewHolder: ViewHolder, direction: Int) {
-        if (direction == START) {
-            adapter.onItemDismiss(viewHolder.adapterPosition)
-        } else if (direction == END) {
-            adapter.onItemLike(viewHolder.adapterPosition)
-        }
-    }
-
-    interface SwipeHelperAdapter {
-        fun onItemDismiss(position: Int)
-        fun onItemLike(position: Int)
     }
 }
