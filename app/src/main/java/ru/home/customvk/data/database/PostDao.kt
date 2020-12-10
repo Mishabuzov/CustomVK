@@ -13,13 +13,13 @@ interface PostDao {
     @Update
     fun updatePost(post: Post)
 
-    @Query("Select * FROM post")
+    @Query("Select * FROM ${Post.POSTS_TABLE_NAME}")
     fun getPosts(): Single<List<Post>>
 
-    @Query("Select * FROM post where is_liked = 1")
+    @Query("Select * FROM ${Post.POSTS_TABLE_NAME} where ${Post.COLUMN_IS_LIKED} = 1")
     fun getFavoritePosts(): Single<List<Post>>
 
-    @Query("DELETE FROM post")
+    @Query("DELETE FROM ${Post.POSTS_TABLE_NAME}")
     fun deleteAllPosts()
 
     @Transaction
