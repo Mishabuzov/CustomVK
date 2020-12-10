@@ -31,10 +31,10 @@ class PostHolderHelper {
     private fun TextView.bindTextContent(textContent: String) {
         if (textContent.isBlank()) {
             text = ""
-            visibility = View.GONE
+            isVisible = false
         } else {
-            visibility = View.VISIBLE
             text = textContent
+            isVisible = true
         }
     }
 
