@@ -15,11 +15,8 @@ data class Post(
     @Embedded
     val source: PostSource,
 
-    @ColumnInfo(name = COLUMN_INSERTION_TIME_MILLIS)
-    val insertionTimeMillis: Long,
-
-    @ColumnInfo(name = COLUMN_READABLE_PUBLICATION_DATE)
-    val readablePublicationDate: String,
+    @ColumnInfo(name = COLUMN_CREATION_DATE_MILLIS)
+    val creationDateMillis: Long,
 
     @ColumnInfo(name = COLUMN_TEXT)
     val text: String,
@@ -47,8 +44,7 @@ data class Post(
 
         // column names:
         const val COLUMN_POST_ID = "post_id"
-        const val COLUMN_INSERTION_TIME_MILLIS = "insertion_time_millis"
-        const val COLUMN_READABLE_PUBLICATION_DATE = "readable_publication_date"
+        const val COLUMN_CREATION_DATE_MILLIS = "insertion_time_millis"
         const val COLUMN_TEXT = "text"
         const val COLUMN_PICTURE_URL = "picture_url"
         const val COLUMN_LIKES_COUNT = "likes_count"

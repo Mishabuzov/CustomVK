@@ -45,8 +45,7 @@ object PostUtils {
         return Post(
             postId = postId,
             source = PostSource(sourceId, sourceName, sourceIconUrl),
-            insertionTimeMillis = System.currentTimeMillis(),
-            readablePublicationDate = (date * 1000).convertMillisTimestampToHumanReadableDate(),
+            creationDateMillis = System.currentTimeMillis(),
             text = text,
             pictureUrl = attachments?.extractPhotoUrl() ?: "",
             likesCount = likes.count,

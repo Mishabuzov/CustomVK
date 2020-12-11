@@ -12,6 +12,7 @@ import com.bumptech.glide.Glide
 import kotlinx.android.synthetic.main.view_post.view.*
 import ru.home.customvk.R
 import ru.home.customvk.domain.Post
+import ru.home.customvk.utils.PostUtils.convertMillisTimestampToHumanReadableDate
 
 class PostHolderHelper {
 
@@ -84,7 +85,7 @@ class PostHolderHelper {
             // bind header
             avatarImageView.setupImage(post.source.sourceIconUrl)
             groupNameTextView.text = post.source.sourceName
-            timeTextView.text = post.readablePublicationDate
+            timeTextView.text = post.creationDateMillis.convertMillisTimestampToHumanReadableDate()
 
             mainTextView.bindTextContent(post.text)
             // bind footer
