@@ -9,6 +9,7 @@
     <!-- newsfeed(posts) screen -->
     <string name="newsfeed_error_dialog_title">Ошибка</string>
     <string name="posts_loading_dialog_error_message">При обработке запроса произошла ошибка</string>
+    <string name="share_image_error_message">Произошла ошибка при загрузке изображения</string>
     <string name="share_image_dialog_title">Поделиться изображением:</string>
     <string name="share_image_dialog_save_option">Сохранить изображение в галлерею</string>
     <string name="share_image_dialog_share_option">Поделиться изображением</string>
