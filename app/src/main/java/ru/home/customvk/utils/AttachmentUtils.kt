@@ -1,6 +1,7 @@
 package ru.home.customvk.utils
 
 import android.graphics.Bitmap
+import android.os.Environment
 import android.webkit.MimeTypeMap
 import ru.home.customvk.data.api.network_entities.Attachment
 import ru.home.customvk.utils.PostUtils.convertMillisTimestampToHumanReadableDate
@@ -11,6 +12,9 @@ object AttachmentUtils {
     private const val TIME_FORMAT_FOR_IMAGE_NAME = "yyyy-MM-dd_HH_mm_ss"
     private const val POSTS_MIN_IMAGE_SIZE = 300
     private const val PHOTO_ATTACHMENT_TYPE = "photo"
+    private const val DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
+
+    val PUBLIC_IMAGES_DIR: String = Environment.DIRECTORY_PICTURES
 
     fun generateFullImageName(imageUrl: String): String {
         val imageExtension = MimeTypeMap.getFileExtensionFromUrl(imageUrl)
@@ -19,7 +23,7 @@ object AttachmentUtils {
 
     fun getImageMimeTypeByUrl(url: String): String {
         return MimeTypeMap.getSingleton().getMimeTypeFromExtension(MimeTypeMap.getFileExtensionFromUrl(url))
-            ?: PostUtils.DEFAULT_IMAGE_MIME_TYPE
+            ?: DEFAULT_IMAGE_MIME_TYPE
     }
 
     /**

@@ -17,8 +17,6 @@ object PostUtils {
 
     private const val POSTS_TIME_PATTERN_FORMAT = "dd.MM.yyyy в HH:mm"
 
-    const val DEFAULT_IMAGE_MIME_TYPE = "image/jpeg"
-
     fun List<Post>.filterByFavorites() = filter { it.isLiked }
 
     fun List<Post>.areLikedPostsPresent(): Boolean = filterByFavorites().count() > 0
