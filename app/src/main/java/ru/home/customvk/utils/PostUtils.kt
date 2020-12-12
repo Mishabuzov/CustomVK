@@ -45,7 +45,7 @@ object PostUtils {
             source = PostSource(sourceId, sourceName, sourceIconUrl),
             creationDateMillis = System.currentTimeMillis(),
             text = text,
-            pictureUrl = attachments?.extractPhotoUrl() ?: "",
+            pictureUrl = attachments?.extractPhotoUrl(),
             likesCount = likes.count,
             isLiked = likes.isLiked,
             commentsCount = comments.count,

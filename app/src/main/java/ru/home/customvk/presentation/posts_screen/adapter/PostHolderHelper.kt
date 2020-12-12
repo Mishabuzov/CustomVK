@@ -134,7 +134,7 @@ class PostHolderHelper {
         this.bindPostWithoutImage(post, adapterPosition, onLikeAction)  // bind main part of the post.
 
         // bind picture
-        if (post.pictureUrl.isNotBlank()) {
+        if (!post.pictureUrl.isNullOrBlank()) {
             postImageView.isVisible = true
             postImageView.setupImageAndConfigureSharing(this, post.pictureUrl, onShareAction)
         }

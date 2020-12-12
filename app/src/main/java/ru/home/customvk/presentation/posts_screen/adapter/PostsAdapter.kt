@@ -55,7 +55,7 @@ class PostsAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (posts[position].pictureUrl.isBlank()) {
+        return if (posts[position].pictureUrl == null) {
             TYPE_TEXT_POST
         } else {
             TYPE_IMAGE_POST

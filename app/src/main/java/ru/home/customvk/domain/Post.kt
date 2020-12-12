@@ -22,7 +22,7 @@ data class Post(
     val text: String,
 
     @ColumnInfo(name = COLUMN_PICTURE_URL)
-    val pictureUrl: String,
+    val pictureUrl: String?,
 
     @ColumnInfo(name = COLUMN_LIKES_COUNT)
     var likesCount: Int,

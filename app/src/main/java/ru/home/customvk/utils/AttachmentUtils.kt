@@ -29,15 +29,15 @@ object AttachmentUtils {
     /**
      * The method takes only first photo with not bad quality (if such is found, either takes just the first photo).
      */
-    fun List<Attachment>.extractPhotoUrl(): String {
-        val photoAttachments = filter { it.type == PHOTO_ATTACHMENT_TYPE }
-        return if (photoAttachments.isNotEmpty()) {
-            val firstPhotoVariants = photoAttachments[0].photo.sizes
-            firstPhotoVariants.find { it.height > POSTS_MIN_IMAGE_SIZE && it.width > POSTS_MIN_IMAGE_SIZE }?.url
-                ?: firstPhotoVariants[0].url
-        } else {
-            ""
-        }
+    fun List<Attachment>.extractPhotoUrl(): String? {
+        val firstPhotoSizes = filter { it.type == PHOTO_ATTACHMENT_TYPE }
+            .asSequence()
+            .take(1)
+            .flatMap { firstPhoto -> firstPhoto.photo.sizes }
+            .toList()
+
+        return firstPhotoSizes.find { it.height > POSTS_MIN_IMAGE_SIZE && it.width > POSTS_MIN_IMAGE_SIZE }?.url
+            ?: firstPhotoSizes.getOrNull(0)?.url
     }
 
     fun OutputStream.compressBitmap(bitmap: Bitmap) {
