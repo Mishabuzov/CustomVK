@@ -1,8 +1,6 @@
 package ru.home.customvk.presentation.posts_screen
 
 import android.Manifest
-import android.content.ContentResolver
-import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -11,8 +9,6 @@ import android.graphics.drawable.ShapeDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,7 +17,6 @@ import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat.checkSelfPermission
-import androidx.core.content.FileProvider
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -34,11 +29,7 @@ import ru.home.customvk.VkApplication
 import ru.home.customvk.presentation.posts_screen.adapter.PostTouchHelperCallback
 import ru.home.customvk.presentation.posts_screen.adapter.PostsAdapter
 import ru.home.customvk.utils.AttachmentUtils
-import ru.home.customvk.utils.AttachmentUtils.compressBitmap
-import ru.home.customvk.utils.PostUtils.POSTS_IMAGE_PROVIDER_AUTHORITIES
-import ru.home.customvk.utils.PostUtils.createFileToCacheBitmap
-import java.io.File
-import java.io.FileOutputStream
+import ru.home.customvk.utils.AttachmentUtils.PUBLIC_IMAGES_DIR
 import javax.inject.Inject
 
 class PostsFragment : Fragment() {
@@ -46,8 +37,6 @@ class PostsFragment : Fragment() {
     companion object {
         private const val ARG_FAVORITE = "is_favorite"
         private const val ARG_FIRST_LOADING = "is_first_loading"
-
-        private val PUBLIC_IMAGES_DIR = Environment.DIRECTORY_PICTURES
 
         private const val PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1
 
@@ -126,8 +115,14 @@ class PostsFragment : Fragment() {
             is UiEffect.FinishRefreshing -> postsRefresher.isRefreshing = false
             is UiEffect.ErrorUpdatingPosts -> showQueryErrorDialog()
             is UiEffect.ScrollRecyclerToPosition -> postsRecycler.post { postsRecycler.scrollToPosition(uiEffect.position) }
+            is UiEffect.ShareImage -> shareImage(uiEffect.internalImageUri)
+            is UiEffect.ErrorSharingImage -> showBitmapLoadingErrorDialog()
+            is UiEffect.ShowDialogToOpenImageInOtherApp -> showDialogToOpenImageInOtherApp(uiEffect.imageUri, uiEffect.imageMimeType)
+            is UiEffect.ShowSuccessSavingToGalleryNotification -> showSuccessSavingToGalleryNotification()
         }
     }
+
+    private fun showBitmapLoadingErrorDialog() = showErrorDialog(R.string.share_image_error_message)
 
     private fun showQueryErrorDialog() = showErrorDialog(R.string.posts_loading_dialog_error_message)
 
@@ -144,10 +139,7 @@ class PostsFragment : Fragment() {
         return PostsAdapter(
             onLikeListener = { postIndex -> postsViewModel.processLike(postIndex) },
             onRemoveSwipeListener = { postPosition -> postsViewModel.hidePost(postPosition) },
-            onShareAction = { bitmap: Bitmap, imageUri: String ->
-                val shareDialog = setupShareImageDialog(bitmap, imageUri)
-                shareDialog.show()
-            }
+            onShareAction = { bitmap: Bitmap, imageUri: String -> setupShareImageDialog(bitmap, imageUri).show() }
         )
     }
 
@@ -163,8 +155,7 @@ class PostsFragment : Fragment() {
             shareDialog.dismiss()
         }
         shareDialogView.findViewById<TextView>(R.id.shareBottomDialogItem).setOnClickListener {
-            val internalImageUri: Uri = cacheBitmapInternally(bitmap, bitmapFullName)
-            shareImage(internalImageUri)
+            postsViewModel.cacheBitmapForSharing(bitmap, bitmapFullName)
             shareDialog.dismiss()
         }
         return shareDialog
@@ -180,55 +171,25 @@ class PostsFragment : Fragment() {
         startActivity(Intent.createChooser(shareIntent, getString(R.string.share_image_dialog_title)))
     }
 
-    /**
-     * Caches image-bitmap to internal dir and returns its Uri.
-     */
-    private fun cacheBitmapInternally(bitmap: Bitmap, bitmapFullName: String): Uri {
-        val imageFile: File = createFileToCacheBitmap(bitmapFullName, context!!.cacheDir)
-        FileOutputStream(imageFile).use {
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
-            return FileProvider.getUriForFile(context!!, POSTS_IMAGE_PROVIDER_AUTHORITIES, imageFile)
-        }
-    }
-
     private fun showToast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 
     private lateinit var savingBitmapAfterRequestingPermissions: () -> Unit
     private fun configureOnSavingPictureActions(bitmap: Bitmap, bitmapFullName: String, imageMimeType: String) {
         when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
-                val resolver: ContentResolver = activity!!.contentResolver
-                val contentValues = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, bitmapFullName)
-                    put(MediaStore.MediaColumns.MIME_TYPE, imageMimeType)
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, PUBLIC_IMAGES_DIR)
-                }
-                val localImageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
-                resolver.openOutputStream(localImageUri)!!.compressBitmap(bitmap)
-                showDialogToOpenImageInOtherApp(localImageUri, imageMimeType)
-                onSuccessSavingToGalleryNotification()
+                postsViewModel.saveBitmapThroughMediaStore(bitmap, bitmapFullName, imageMimeType)
             }
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                    && checkSelfPermission(
-                context!!,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED -> {
-                savingBitmapAfterRequestingPermissions = { onLegacySavingActions(bitmap, bitmapFullName) }
+                    && checkSelfPermission(context!!, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED -> {
+                savingBitmapAfterRequestingPermissions = { postsViewModel.saveBitmapInExternalStorageDir(bitmap, bitmapFullName) }
                 requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE)
             }
-            else -> onLegacySavingActions(bitmap, bitmapFullName)
+            else -> postsViewModel.saveBitmapInExternalStorageDir(bitmap, bitmapFullName)
         }
     }
 
-    private fun onSuccessSavingToGalleryNotification() {
+    private fun showSuccessSavingToGalleryNotification() {
         showToast(String.format(getString(R.string.successful_image_saving_notification_format), PUBLIC_IMAGES_DIR))
-    }
-
-    private fun onLegacySavingActions(bitmap: Bitmap, bitmapFullName: String) {
-        @Suppress("DEPRECATION")
-        val imageFileToSave = File(Environment.getExternalStoragePublicDirectory(PUBLIC_IMAGES_DIR), bitmapFullName)
-        FileOutputStream(imageFileToSave).compressBitmap(bitmap)
-        onSuccessSavingToGalleryNotification()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {

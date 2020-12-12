@@ -1,9 +1,18 @@
 package ru.home.customvk.presentation.posts_screen
 
 import android.app.Application
+import android.content.ContentResolver
+import android.content.ContentValues
+import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.MediaStore
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.core.content.FileProvider
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.freeletics.rxredux.SideEffect
@@ -11,6 +20,7 @@ import com.freeletics.rxredux.reduxStore
 import com.jakewharton.rxrelay2.PublishRelay
 import com.jakewharton.rxrelay2.Relay
 import io.reactivex.Observable
+import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.functions.Consumer
 import io.reactivex.schedulers.Schedulers
@@ -18,10 +28,15 @@ import ru.home.customvk.VkApplication
 import ru.home.customvk.domain.Post
 import ru.home.customvk.domain.PostRepository
 import ru.home.customvk.presentation.BaseRxViewModel
+import ru.home.customvk.utils.AttachmentUtils.PUBLIC_IMAGES_DIR
+import ru.home.customvk.utils.AttachmentUtils.compressBitmap
+import ru.home.customvk.utils.PostUtils
 import ru.home.customvk.utils.PostUtils.areLikedPostsPresent
 import ru.home.customvk.utils.PostUtils.likePostAtPosition
 import ru.home.customvk.utils.PreferencesUtils
 import ru.home.customvk.utils.SingleLiveEvent
+import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 import kotlin.properties.Delegates
 
@@ -224,6 +239,80 @@ class PostsViewModel(application: Application) : BaseRxViewModel(application) {
             uiEffectsInput.accept(UiEffect.ErrorUpdatingPosts)
             updateFavoritesVisibility()
         }, UPDATING_DELAY_MILLIS)
+    }
+
+    private fun getAppContext() = getApplication<VkApplication>().applicationContext
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun saveBitmapThroughMediaStore(bitmap: Bitmap, bitmapFullName: String, imageMimeType: String) {
+        Single.fromCallable {
+            val resolver: ContentResolver = getAppContext().contentResolver
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, bitmapFullName)
+                put(MediaStore.MediaColumns.MIME_TYPE, imageMimeType)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, PUBLIC_IMAGES_DIR)
+            }
+            val localImageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
+            resolver.openOutputStream(localImageUri)!!.compressBitmap(bitmap)
+            Pair<Uri, String>(localImageUri, imageMimeType)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { imageInfo ->
+                    uiEffectsInput.accept(
+                        UiEffect.ShowDialogToOpenImageInOtherApp(imageUri = imageInfo.first, imageMimeType = imageInfo.second)
+                    )
+                    uiEffectsInput.accept(UiEffect.ShowSuccessSavingToGalleryNotification)
+                },
+                { throwable ->
+                    logError("Error saving image to gallery through media store!", throwable)
+                    uiEffectsInput.accept(UiEffect.ErrorSharingImage)
+                }
+            )
+            .disposeOnFinish()
+    }
+
+    /**
+     * This function uses deprecated way of saving image to gallery. It is used only if SDK version < Android Q
+     */
+    fun saveBitmapInExternalStorageDir(bitmap: Bitmap, bitmapFullName: String) {
+        Single.fromCallable {
+            @Suppress("DEPRECATION")
+            val imageFileToSave = File(Environment.getExternalStoragePublicDirectory(PUBLIC_IMAGES_DIR), bitmapFullName)
+            FileOutputStream(imageFileToSave).compressBitmap(bitmap)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { uiEffectsInput.accept(UiEffect.ShowSuccessSavingToGalleryNotification) },
+                { throwable ->
+                    logError("Error saving image to gallery through ExternalStoragePublicDirectory!", throwable)
+                    uiEffectsInput.accept(UiEffect.ErrorSharingImage)
+                }
+            )
+            .disposeOnFinish()
+    }
+
+    /**
+     * Caches image-bitmap to internal dir and returns its Uri.
+     */
+    fun cacheBitmapForSharing(bitmap: Bitmap, bitmapFullName: String) {
+        Single.fromCallable {
+            val imageFile: File = PostUtils.createFileToCacheBitmap(bitmapFullName, getAppContext().cacheDir)
+            FileOutputStream(imageFile).compressBitmap(bitmap)
+            FileProvider.getUriForFile(getAppContext(), PostUtils.POSTS_IMAGE_PROVIDER_AUTHORITIES, imageFile)
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { imageUri -> uiEffectsInput.accept(UiEffect.ShareImage(imageUri)) },
+                { throwable ->
+                    logError("Failed to cache image for sharing!", throwable)
+                    uiEffectsInput.accept(UiEffect.ErrorSharingImage)
+                }
+            )
+            .disposeOnFinish()
     }
 
     fun saveRecyclerPosition(positionToSave: Int) {
